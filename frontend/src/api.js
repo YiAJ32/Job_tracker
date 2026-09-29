@@ -26,6 +26,12 @@ export const updateApplication = (id, data) =>
 export const deleteApplication = (id) =>
   request(`/api/applications/${id}`, { method: "DELETE" });
 
+export const evaluateMatch = (cvText, jobDescription) =>
+  request("/api/match", {
+    method: "POST",
+    body: JSON.stringify({ cv_text: cvText, job_description: jobDescription }),
+  });
+
 export async function uploadCv(id, file) {
   const formData = new FormData();
   formData.append("file", file);

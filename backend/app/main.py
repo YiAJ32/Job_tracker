@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.applications import router as applications_router
+from app.api.match import router as match_router
 from app.api.statuses import router as statuses_router
 from app.core.config import settings
 
@@ -15,6 +16,7 @@ app.add_middleware(
 )
 
 app.include_router(applications_router)
+app.include_router(match_router)
 app.include_router(statuses_router)
 
 

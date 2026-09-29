@@ -38,6 +38,25 @@ class ApplicationUpdate(BaseModel):
     notas: Optional[str] = None
 
 
+class MatchRequest(BaseModel):
+    cv_text: str
+    job_description: str
+
+
+class MatchKeyword(BaseModel):
+    term: str
+    weight: float
+
+
+class MatchResult(BaseModel):
+    score: int
+    level: str
+    total_keywords: int
+    matched_count: int
+    matched_keywords: list[MatchKeyword]
+    missing_keywords: list[MatchKeyword]
+
+
 class ApplicationRead(BaseModel):
     id: UUID
     empresa: str
