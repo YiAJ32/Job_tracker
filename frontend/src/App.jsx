@@ -2,6 +2,8 @@ import { useState } from "react";
 import ApplicationsTab from "./ApplicationsTab";
 import MatchReviewTab from "./MatchReviewTab";
 import CompanyRatingTab from "./CompanyRatingTab";
+import ThemeToggle from "./ThemeToggle";
+import { useTheme } from "./useTheme";
 
 const TABS = [
   { id: "match", label: "Revisar match" },
@@ -11,6 +13,7 @@ const TABS = [
 
 function App() {
   const [activeTab, setActiveTab] = useState("applications");
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="page">
@@ -22,6 +25,8 @@ function App() {
             <p>Organiza tu búsqueda de empleo en un solo lugar</p>
           </div>
         </div>
+
+        <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </header>
 
       <nav className="navbar">
