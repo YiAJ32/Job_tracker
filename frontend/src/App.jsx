@@ -2,7 +2,9 @@ import { useState } from "react";
 import ApplicationsTab from "./ApplicationsTab";
 import MatchReviewTab from "./MatchReviewTab";
 import CompanyRatingTab from "./CompanyRatingTab";
+import LoginRequiredModal from "./LoginRequiredModal";
 import ThemeToggle from "./ThemeToggle";
+import { useAuth } from "./useAuth";
 import { useTheme } from "./useTheme";
 
 const TABS = [
@@ -14,6 +16,8 @@ const TABS = [
 function App() {
   const [activeTab, setActiveTab] = useState("applications");
   const { theme, toggleTheme } = useTheme();
+  const auth = useAuth();
+  const [showLogin, setShowLogin] = useState(false);
 
   return (
     <div className="page">
@@ -26,7 +30,23 @@ function App() {
           </div>
         </div>
 
-        <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        <div className="header-actions">
+          {auth.user ? (
+            <div className="user-chip">
+              <span className="user-chip-name">{auth.user.nombre}</span>
+              <button type="button" className="link-button" onClick={auth.logout}>
+                Salir
+              </button>
+            </div>
+          ) : (
+            !auth.checking && (
+              <button type="button" className="user-chip" onClick={() => setShowLogin(true)}>
+                Iniciar sesión
+              </button>
+            )
+          )}
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
       </header>
 
       <nav className="navbar">
@@ -44,7 +64,16 @@ function App() {
 
       {activeTab === "match" && <MatchReviewTab />}
       {activeTab === "applications" && <ApplicationsTab />}
-      {activeTab === "rating" && <CompanyRatingTab />}
+      {activeTab === "rating" && <CompanyRatingTab auth={auth} />}
+
+      {showLogin && !auth.user && (
+        <LoginRequiredModal
+          auth={auth}
+          title="Iniciar sesión"
+          message="Con tu cuenta podés agregar empresas, calificarlas y dejar reseñas."
+          onClose={() => setShowLogin(false)}
+        />
+      )}
     </div>
   );
 }

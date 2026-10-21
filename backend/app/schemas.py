@@ -1,8 +1,8 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ApplicationStatusRead(BaseModel):
@@ -36,6 +36,64 @@ class ApplicationUpdate(BaseModel):
     enlace_oferta: Optional[str] = None
     fecha_aplicacion: Optional[date] = None
     notas: Optional[str] = None
+
+
+class UserRegister(BaseModel):
+    nombre: str = Field(min_length=1, max_length=80)
+    email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=8, max_length=72)
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class UserRead(BaseModel):
+    id: UUID
+    nombre: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+
+class AuthResponse(BaseModel):
+    token: str
+    user: UserRead
+
+
+class CompanyCreate(BaseModel):
+    nombre: str = Field(min_length=1, max_length=120)
+    sitio_web: Optional[str] = None
+
+
+class CompanyRead(BaseModel):
+    id: UUID
+    nombre: str
+    sitio_web: Optional[str] = None
+    agregada_por: Optional[str] = None
+    promedio: Optional[float] = None
+    total_resenas: int
+    votos_existe: int
+    votos_fantasma: int
+
+
+class ReviewUpsert(BaseModel):
+    calificacion: int = Field(ge=1, le=5)
+    notas: Optional[str] = Field(default=None, max_length=2000)
+    verificacion: Optional[Literal["existe", "fantasma"]] = None
+
+
+class ReviewRead(BaseModel):
+    id: UUID
+    user_id: UUID
+    autor: str
+    calificacion: int
+    notas: Optional[str] = None
+    verificacion: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
 
 class MatchRequest(BaseModel):
