@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.applications import router as applications_router
+from app.api.auth import router as auth_router
+from app.api.companies import router as companies_router
 from app.api.match import router as match_router
 from app.api.statuses import router as statuses_router
 from app.core.config import settings
@@ -15,7 +17,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(applications_router)
+app.include_router(companies_router)
 app.include_router(match_router)
 app.include_router(statuses_router)
 

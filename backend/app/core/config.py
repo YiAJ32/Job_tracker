@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/job_tracker"
     cors_origins: str = "http://localhost:5173"
     cv_storage_dir: str = "storage/cvs"
+    jwt_secret: str
+    jwt_expire_minutes: int = 60 * 24 * 7
 
     class Config:
         env_file = ".env"
