@@ -19,7 +19,9 @@ def _get_company_or_404(db: Session, company_id: UUID) -> Company:
     return company
 
 
-def _company_summaries(db: Session, company_id: UUID | None = None) -> list[CompanyRead]:
+def company_summaries(
+    db: Session, company_id: UUID | None = None, created_by_id: UUID | None = None
+) -> list[CompanyRead]:
     query = (
         db.query(
             Company,
@@ -36,6 +38,8 @@ def _company_summaries(db: Session, company_id: UUID | None = None) -> list[Comp
     )
     if company_id is not None:
         query = query.filter(Company.id == company_id)
+    if created_by_id is not None:
+        query = query.filter(Company.created_by_id == created_by_id)
 
     return [
         CompanyRead(
@@ -67,7 +71,7 @@ def _review_to_read(review: CompanyReview) -> ReviewRead:
 
 @router.get("", response_model=list[CompanyRead])
 def list_companies(db: Session = Depends(get_db)):
-    return _company_summaries(db)
+    return company_summaries(db)
 
 
 @router.post("", response_model=CompanyRead, status_code=201)
@@ -90,7 +94,7 @@ def create_company(
     )
     db.add(company)
     db.commit()
-    return _company_summaries(db, company.id)[0]
+    return company_summaries(db, company.id)[0]
 
 
 @router.get("/{company_id}/reviews", response_model=list[ReviewRead])

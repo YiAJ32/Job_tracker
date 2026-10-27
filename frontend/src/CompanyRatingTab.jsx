@@ -4,20 +4,22 @@ import CompanyReviews from "./CompanyReviews";
 import LoginRequiredModal from "./LoginRequiredModal";
 import ReviewForm from "./ReviewForm";
 import { AverageStars } from "./StarRating";
+import { useI18n } from "./i18n";
 
 const EMPTY_COMPANY = { nombre: "", sitio_web: "" };
 
 // Resume los votos "existe / fantasma" de todas las reseñas
-function verificationConsensus({ votos_existe: existe, votos_fantasma: fantasma }) {
+function verificationConsensus({ votos_existe: existe, votos_fantasma: fantasma }, t) {
   const total = existe + fantasma;
-  if (total === 0) return { key: "sin-verificar", label: "Sin verificar" };
-  const detail = `${existe} existe · ${fantasma} fantasma`;
-  if (fantasma > existe) return { key: "fantasma", label: "👻 Posible fantasma", detail };
-  if (existe > fantasma) return { key: "existe", label: "✓ Existe", detail };
-  return { key: "dividido", label: "Opiniones divididas", detail };
+  if (total === 0) return { key: "sin-verificar", label: t("rating.unverified") };
+  const detail = t("rating.consensusDetail", { existe, fantasma });
+  if (fantasma > existe) return { key: "fantasma", label: t("rating.possibleGhost"), detail };
+  if (existe > fantasma) return { key: "existe", label: t("rating.exists"), detail };
+  return { key: "dividido", label: t("rating.divided"), detail };
 }
 
-function CompanyRatingTab({ auth }) {
+function CompanyRatingTab({ auth, focusRequest, onChange }) {
+  const { t } = useI18n();
   const { user } = auth;
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +70,7 @@ function CompanyRatingTab({ auth }) {
     try {
       setCompanies(await listCompanies());
       setError(null);
+      onChange?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -78,6 +81,15 @@ function CompanyRatingTab({ auth }) {
   useEffect(() => {
     loadCompanies();
   }, []);
+
+  // Abrir una empresa pedida desde el perfil o la barra de usuario
+  useEffect(() => {
+    if (!focusRequest) return;
+    setSearch("");
+    scrollAnchor.current = { id: focusRequest.id };
+    setOpenId(focusRequest.id);
+    setReviewCompanyId(focusRequest.id);
+  }, [focusRequest]);
 
   useEffect(() => {
     if (!user || !pendingCreate.current) return;
@@ -128,21 +140,21 @@ function CompanyRatingTab({ auth }) {
     <div>
       <section className="card">
         <div className="card-header">
-          <h2>Agregar empresa</h2>
+          <h2>{t("rating.addTitle")}</h2>
         </div>
         <form onSubmit={handleCreate} className="app-form">
           <div className="field">
-            <label htmlFor="company-nombre">Nombre</label>
+            <label htmlFor="company-nombre">{t("rating.name")}</label>
             <input
               id="company-nombre"
-              placeholder="Ej. Acme Inc."
+              placeholder={t("rating.namePlaceholder")}
               value={newCompany.nombre}
               onChange={(e) => setNewCompany((c) => ({ ...c, nombre: e.target.value }))}
               required
             />
           </div>
           <div className="field span-2">
-            <label htmlFor="company-sitio">Sitio web (opcional)</label>
+            <label htmlFor="company-sitio">{t("rating.website")}</label>
             <input
               id="company-sitio"
               placeholder="https://..."
@@ -152,7 +164,7 @@ function CompanyRatingTab({ auth }) {
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">
-              Agregar
+              {t("rating.add")}
             </button>
           </div>
         </form>
@@ -160,8 +172,10 @@ function CompanyRatingTab({ auth }) {
 
       <section className="card">
         <div className="card-header">
-          <h2>Company rating</h2>
-          {companies.length > 0 && <span className="count">{companies.length} empresas</span>}
+          <h2>{t("rating.listTitle")}</h2>
+          {companies.length > 0 && (
+            <span className="count">{t("rating.count", { count: companies.length })}</span>
+          )}
         </div>
 
         {error && <p className="error">{error}</p>}
@@ -170,8 +184,8 @@ function CompanyRatingTab({ auth }) {
           <input
             className="company-search"
             type="search"
-            placeholder="Buscar empresa..."
-            aria-label="Buscar empresa"
+            placeholder={t("rating.search")}
+            aria-label={t("rating.search")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -179,24 +193,22 @@ function CompanyRatingTab({ auth }) {
 
         {loading ? (
           <div className="state-block">
-            <p>Cargando empresas...</p>
+            <p>{t("rating.loading")}</p>
           </div>
         ) : companies.length === 0 ? (
           <div className="state-block">
             <div className="state-icon">⭐</div>
-            <p>Todavía no hay empresas.</p>
-            <span className="state-sub">
-              Agregá la primera con el formulario de arriba.
-            </span>
+            <p>{t("rating.empty")}</p>
+            <span className="state-sub">{t("rating.emptySub")}</span>
           </div>
         ) : visible.length === 0 ? (
           <div className="state-block">
-            <p>Ninguna empresa coincide con "{search}".</p>
+            <p>{t("rating.noMatch", { search })}</p>
           </div>
         ) : (
           <ul className="company-list">
             {visible.map((company) => {
-              const consensus = verificationConsensus(company);
+              const consensus = verificationConsensus(company, t);
               const isOpen = openId === company.id;
               return (
                 <li
@@ -223,14 +235,14 @@ function CompanyRatingTab({ auth }) {
                         {company.sitio_web && (
                           <>
                             <a href={company.sitio_web} target="_blank" rel="noreferrer">
-                              Sitio web
+                              {t("rating.websiteLink")}
                             </a>
                             {" · "}
                           </>
                         )}
                         {company.agregada_por
-                          ? `Agregada por ${company.agregada_por}`
-                          : "Agregada desde una solicitud"}
+                          ? t("rating.addedBy", { name: company.agregada_por })
+                          : t("rating.addedFromApplication")}
                       </span>
                     </div>
 
@@ -245,8 +257,7 @@ function CompanyRatingTab({ auth }) {
                         aria-expanded={isOpen}
                         onClick={() => toggleCompany(company.id)}
                       >
-                        {company.total_resenas}{" "}
-                        {company.total_resenas === 1 ? "reseña" : "reseñas"}{" "}
+                        {t("rating.reviews", { count: company.total_resenas })}{" "}
                         {isOpen ? "▲" : "▼"}
                       </button>
                     </div>
@@ -280,11 +291,11 @@ function CompanyRatingTab({ auth }) {
       {showLoginModal && !user && (
         <LoginRequiredModal
           auth={auth}
-          title="Iniciá sesión para agregar empresas"
+          title={t("rating.loginTitle")}
           message={
             newCompany.nombre.trim()
-              ? `Para agregar ${newCompany.nombre.trim()} necesitás una cuenta.`
-              : "Para agregar una empresa necesitás una cuenta."
+              ? t("rating.loginNamed", { name: newCompany.nombre.trim() })
+              : t("rating.loginGeneric")
           }
           onClose={closeLoginModal}
         />

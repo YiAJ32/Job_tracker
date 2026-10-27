@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
 import CvPreviewModal from "./CvPreviewModal";
 import { hasAllowedCvExtension } from "./cvValidation";
+import { useI18n } from "./i18n";
 
 function CvDropzoneField({ file, onFileChange }) {
+  const { t } = useI18n();
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -11,7 +13,7 @@ function CvDropzoneField({ file, onFileChange }) {
   function pickFile(candidate) {
     if (!candidate) return;
     if (!hasAllowedCvExtension(candidate.name)) {
-      setError("Solo se permiten archivos PDF o Word (.pdf, .doc, .docx)");
+      setError(t("cv.onlyPdfWord"));
       return;
     }
     setError(null);
@@ -38,7 +40,7 @@ function CvDropzoneField({ file, onFileChange }) {
           type="button"
           className="cv-chip"
           onClick={() => setPreviewOpen(true)}
-          title="Ver CV"
+          title={t("cv.view")}
         >
           <span className="cv-chip-icon">📄</span>
           <span className="cv-chip-name">{file.name}</span>
@@ -47,8 +49,8 @@ function CvDropzoneField({ file, onFileChange }) {
           type="button"
           className="cv-remove"
           onClick={handleRemove}
-          aria-label="Quitar CV"
-          title="Quitar CV"
+          aria-label={t("cv.remove")}
+          title={t("cv.remove")}
         >
           ×
         </button>
@@ -80,7 +82,7 @@ function CvDropzoneField({ file, onFileChange }) {
         hidden
         onChange={(e) => pickFile(e.target.files?.[0])}
       />
-      <span className="cv-dropzone-text">Arrastra el CV aquí o haz clic (PDF o Word)</span>
+      <span className="cv-dropzone-text">{t("cv.dropLong")}</span>
       {error && <span className="cv-error">{error}</span>}
     </div>
   );

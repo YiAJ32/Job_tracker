@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import AuthForm from "./AuthForm";
+import { useI18n } from "./i18n";
 
-function LoginRequiredModal({ auth, title = "Iniciá sesión para comentar", message, onClose }) {
+function LoginRequiredModal({ auth, title, message, onClose }) {
+  const { t } = useI18n();
   useEffect(() => {
     function handleKey(e) {
       if (e.key === "Escape") onClose();
@@ -19,17 +21,17 @@ function LoginRequiredModal({ auth, title = "Iniciá sesión para comentar", mes
         aria-labelledby="login-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <button type="button" className="cv-modal-close login-modal-close" onClick={onClose} aria-label="Cerrar">
+        <button type="button" className="cv-modal-close login-modal-close" onClick={onClose} aria-label={t("common.close")}>
           ✕
         </button>
         <div className="login-modal-icon" aria-hidden="true">🔒</div>
-        <h2 id="login-modal-title">{title}</h2>
+        <h2 id="login-modal-title">{title ?? t("auth.modalTitle")}</h2>
         {message && <p className="login-modal-text">{message}</p>}
         <AuthForm
           className="login-modal-form"
           onLogin={auth.login}
           onRegister={auth.register}
-          intro="Si no tenés cuenta, podés crear una en un minuto."
+          intro={t("auth.modalIntro")}
           autoFocus
         />
       </div>

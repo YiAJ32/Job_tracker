@@ -23,6 +23,8 @@ export function useAuth() {
     checking,
     login: async (data) => handleAuth(await login(data)),
     register: async (data) => handleAuth(await register(data)),
+    // Después de editar el perfil, para que el encabezado y el menú muestren los datos nuevos
+    updateUser: setUser,
     logout: () => {
       setToken(null);
       setUser(null);

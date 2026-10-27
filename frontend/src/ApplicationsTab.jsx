@@ -9,6 +9,7 @@ import {
 } from "./api";
 import CvCell from "./CvCell";
 import CvDropzoneField from "./CvDropzoneField";
+import { useI18n, useStatusLabel } from "./i18n";
 
 const EMPTY_FORM = {
   empresa: "",
@@ -19,7 +20,7 @@ const EMPTY_FORM = {
   notas: "",
 };
 
-function slugifyStatus(nombre) {
+export function slugifyStatus(nombre) {
   return (nombre ?? "")
     .toLowerCase()
     .normalize("NFD")
@@ -28,6 +29,7 @@ function slugifyStatus(nombre) {
 }
 
 function StatusSelect({ value, statuses, onChange, className }) {
+  const statusLabel = useStatusLabel();
   const current = statuses.find((s) => String(s.id) === String(value));
   return (
     <select
@@ -38,14 +40,16 @@ function StatusSelect({ value, statuses, onChange, className }) {
     >
       {statuses.map((s) => (
         <option key={s.id} value={s.id}>
-          {s.nombre}
+          {statusLabel(s.nombre)}
         </option>
       ))}
     </select>
   );
 }
 
-function ApplicationsTab() {
+function ApplicationsTab({ focusFormRequest = 0, onChange }) {
+  const { t } = useI18n();
+  const statusLabel = useStatusLabel();
   const [applications, setApplications] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -60,6 +64,7 @@ function ApplicationsTab() {
       setApplications(apps);
       setStatuses(sts);
       setError(null);
+      onChange?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -70,6 +75,14 @@ function ApplicationsTab() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  // "Nueva solicitud" desde la barra de usuario lleva directo al formulario
+  useEffect(() => {
+    if (!focusFormRequest) return;
+    const input = document.getElementById("empresa");
+    input?.scrollIntoView({ behavior: "smooth", block: "center" });
+    input?.focus({ preventScroll: true });
+  }, [focusFormRequest]);
 
   useEffect(() => {
     if (statuses.length > 0 && !form.estado_id) {
@@ -134,7 +147,7 @@ function ApplicationsTab() {
           {statusCounts.map((s) => (
             <span key={s.id} className="stat-pill">
               <span className="dot" data-status={slugifyStatus(s.nombre)} style={{ backgroundColor: "currentColor" }} />
-              {s.nombre} <strong>{s.count}</strong>
+              {statusLabel(s.nombre)} <strong>{s.count}</strong>
             </span>
           ))}
         </div>
@@ -142,33 +155,33 @@ function ApplicationsTab() {
 
       <section className="card">
         <div className="card-header">
-          <h2>Nueva solicitud</h2>
+          <h2>{t("applications.newTitle")}</h2>
         </div>
         <form onSubmit={handleSubmit} className="app-form">
           <div className="field">
-            <label htmlFor="empresa">Empresa</label>
+            <label htmlFor="empresa">{t("applications.company")}</label>
             <input
               id="empresa"
               name="empresa"
-              placeholder="Ej. Acme Inc."
+              placeholder={t("applications.companyPlaceholder")}
               value={form.empresa}
               onChange={handleChange}
               required
             />
           </div>
           <div className="field">
-            <label htmlFor="puesto">Puesto</label>
+            <label htmlFor="puesto">{t("applications.position")}</label>
             <input
               id="puesto"
               name="puesto"
-              placeholder="Ej. Desarrollador Frontend"
+              placeholder={t("applications.positionPlaceholder")}
               value={form.puesto}
               onChange={handleChange}
               required
             />
           </div>
           <div className="field">
-            <label htmlFor="estado_id">Estado</label>
+            <label htmlFor="estado_id">{t("applications.status")}</label>
             <StatusSelect
               className=""
               value={form.estado_id}
@@ -177,7 +190,7 @@ function ApplicationsTab() {
             />
           </div>
           <div className="field">
-            <label htmlFor="fecha_aplicacion">Fecha</label>
+            <label htmlFor="fecha_aplicacion">{t("applications.date")}</label>
             <input
               id="fecha_aplicacion"
               name="fecha_aplicacion"
@@ -187,7 +200,7 @@ function ApplicationsTab() {
             />
           </div>
           <div className="field span-2">
-            <label htmlFor="enlace_oferta">Enlace de la oferta</label>
+            <label htmlFor="enlace_oferta">{t("applications.link")}</label>
             <input
               id="enlace_oferta"
               name="enlace_oferta"
@@ -197,22 +210,22 @@ function ApplicationsTab() {
             />
           </div>
           <div className="field span-2">
-            <label htmlFor="notas">Notas</label>
+            <label htmlFor="notas">{t("applications.notes")}</label>
             <input
               id="notas"
               name="notas"
-              placeholder="Contexto, contactos, próximos pasos..."
+              placeholder={t("applications.notesPlaceholder")}
               value={form.notas}
               onChange={handleChange}
             />
           </div>
           <div className="field">
-            <label>CV</label>
+            <label>{t("applications.cv")}</label>
             <CvDropzoneField file={cvFile} onFileChange={setCvFile} />
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">
-              Agregar solicitud
+              {t("applications.add")}
             </button>
           </div>
         </form>
@@ -222,43 +235,45 @@ function ApplicationsTab() {
 
       <section className="card">
         <div className="card-header">
-          <h2>Solicitudes</h2>
-          {applications.length > 0 && <span className="count">{applications.length} total</span>}
+          <h2>{t("applications.listTitle")}</h2>
+          {applications.length > 0 && (
+            <span className="count">{t("common.total", { count: applications.length })}</span>
+          )}
         </div>
 
         {loading ? (
           <div className="state-block">
-            <p>Cargando solicitudes...</p>
+            <p>{t("applications.loading")}</p>
           </div>
         ) : applications.length === 0 ? (
           <div className="state-block">
             <div className="state-icon">📋</div>
-            <p>Todavía no hay solicitudes registradas.</p>
-            <span className="state-sub">Agrega la primera usando el formulario de arriba.</span>
+            <p>{t("applications.empty")}</p>
+            <span className="state-sub">{t("applications.emptySub")}</span>
           </div>
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Empresa</th>
-                  <th>Puesto</th>
-                  <th>Estado</th>
-                  <th>Fecha</th>
-                  <th>Enlace</th>
-                  <th>Notas</th>
-                  <th>CV</th>
+                  <th>{t("applications.company")}</th>
+                  <th>{t("applications.position")}</th>
+                  <th>{t("applications.status")}</th>
+                  <th>{t("applications.date")}</th>
+                  <th>{t("applications.linkColumn")}</th>
+                  <th>{t("applications.notes")}</th>
+                  <th>{t("applications.cv")}</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {applications.map((app) => (
                   <tr key={app.id}>
-                    <td data-label="Empresa" className="cell-company">
+                    <td data-label={t("applications.company")} className="cell-company">
                       {app.empresa}
                     </td>
-                    <td data-label="Puesto">{app.puesto}</td>
-                    <td data-label="Estado">
+                    <td data-label={t("applications.position")}>{app.puesto}</td>
+                    <td data-label={t("applications.status")}>
                       <StatusSelect
                         className="table-select"
                         value={app.estado_id}
@@ -266,32 +281,32 @@ function ApplicationsTab() {
                         onChange={(e) => handleStatusChange(app, e.target.value)}
                       />
                     </td>
-                    <td data-label="Fecha" className="cell-muted">
+                    <td data-label={t("applications.date")} className="cell-muted">
                       {app.fecha_aplicacion ?? "-"}
                     </td>
-                    <td data-label="Enlace" className="cell-link">
+                    <td data-label={t("applications.linkColumn")} className="cell-link">
                       {app.enlace_oferta ? (
                         <a href={app.enlace_oferta} target="_blank" rel="noreferrer">
-                          Ver oferta
+                          {t("applications.viewOffer")}
                         </a>
                       ) : (
                         <span className="cell-muted">-</span>
                       )}
                     </td>
-                    <td data-label="Notas" className="cell-muted">
+                    <td data-label={t("applications.notes")} className="cell-muted">
                       {app.notas ?? "-"}
                     </td>
-                    <td data-label="CV">
+                    <td data-label={t("applications.cv")}>
                       <CvCell application={app} onChange={loadAll} />
                     </td>
                     <td data-label="">
                       <button
                         className="btn-ghost-danger"
                         onClick={() => handleDelete(app.id)}
-                        aria-label="Eliminar solicitud"
-                        title="Eliminar"
+                        aria-label={t("applications.deleteLabel")}
+                        title={t("applications.delete")}
                       >
-                        Eliminar
+                        {t("applications.delete")}
                       </button>
                     </td>
                   </tr>
