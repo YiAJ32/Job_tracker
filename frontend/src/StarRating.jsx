@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useI18n } from "./i18n";
 
 const STARS = [1, 2, 3, 4, 5];
-const LABELS = ["", "Muy mala", "Mala", "Regular", "Buena", "Excelente"];
 
 function StarRating({ value, onChange, disabled = false }) {
+  const { t } = useI18n();
   const [hovered, setHovered] = useState(null);
   const shown = hovered ?? value ?? 0;
 
@@ -35,11 +36,11 @@ function StarRating({ value, onChange, disabled = false }) {
         className={`star-rating${disabled ? " is-disabled" : ""}`}
         role="slider"
         tabIndex={disabled ? -1 : 0}
-        aria-label="Calificación"
+        aria-label={t("stars.aria")}
         aria-valuemin={0}
         aria-valuemax={5}
         aria-valuenow={value ?? 0}
-        aria-valuetext={value ? `${value} de 5 estrellas` : "Sin calificar"}
+        aria-valuetext={value ? t("stars.valueText", { value }) : t("stars.none")}
         onKeyDown={handleKeyDown}
         onMouseLeave={() => setHovered(null)}
       >
@@ -52,26 +53,27 @@ function StarRating({ value, onChange, disabled = false }) {
             onMouseEnter={() => !disabled && setHovered(star)}
             onClick={() => select(star)}
             disabled={disabled}
-            title={`${star} - ${LABELS[star]}`}
+            title={`${star} - ${t(`stars.${star}`)}`}
             aria-hidden="true"
           >
             ★
           </button>
         ))}
       </div>
-      <span className="star-rating-label">{shown ? LABELS[shown] : "Sin calificar"}</span>
+      <span className="star-rating-label">{shown ? t(`stars.${shown}`) : t("stars.none")}</span>
     </div>
   );
 }
 
 // Estrellas de solo lectura que se llenan en forma proporcional (ej. 3.6 de 5)
 export function AverageStars({ value }) {
+  const { t } = useI18n();
   const percent = value ? (value / 5) * 100 : 0;
   return (
     <span
       className="average-stars"
       role="img"
-      aria-label={value ? `${value} de 5 estrellas` : "Sin calificaciones"}
+      aria-label={value ? t("stars.valueText", { value }) : t("stars.noRatings")}
     >
       <span className="average-stars-empty">★★★★★</span>
       <span className="average-stars-filled" style={{ width: `${percent}%` }}>

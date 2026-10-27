@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import mammoth from "mammoth";
 import { fetchCvBlob } from "./api";
+import { useI18n } from "./i18n";
 
 const DOCX_TYPE =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -9,6 +10,7 @@ const DOC_TYPE = "application/msword";
 // source is either { type: "remote", applicationId, filename }
 // or { type: "local", file } for a not-yet-uploaded File object.
 function CvPreviewModal({ source, onClose }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
@@ -82,17 +84,17 @@ function CvPreviewModal({ source, onClose }) {
           <div className="cv-modal-actions">
             {downloadUrl && (
               <a className="cv-modal-download" href={downloadUrl} download={filename}>
-                Descargar
+                {t("cv.download")}
               </a>
             )}
-            <button type="button" className="cv-modal-close" onClick={onClose} aria-label="Cerrar">
+            <button type="button" className="cv-modal-close" onClick={onClose} aria-label={t("common.close")}>
               ×
             </button>
           </div>
         </div>
         <div className="cv-modal-body">
-          {status === "loading" && <p className="cv-modal-message">Cargando vista previa...</p>}
-          {status === "error" && <p className="cv-modal-message">Error: {error}</p>}
+          {status === "loading" && <p className="cv-modal-message">{t("cv.loadingPreview")}</p>}
+          {status === "error" && <p className="cv-modal-message">{t("cv.previewError", { error })}</p>}
           {status === "pdf" && (
             <embed src={pdfUrl} type="application/pdf" className="cv-modal-pdf" />
           )}
@@ -100,10 +102,7 @@ function CvPreviewModal({ source, onClose }) {
             <div className="cv-modal-docx" dangerouslySetInnerHTML={{ __html: docxHtml }} />
           )}
           {status === "unsupported" && (
-            <p className="cv-modal-message">
-              Vista previa no disponible para este tipo de archivo. Usa "Descargar" para
-              abrirlo.
-            </p>
+            <p className="cv-modal-message">{t("cv.unsupported")}</p>
           )}
         </div>
       </div>

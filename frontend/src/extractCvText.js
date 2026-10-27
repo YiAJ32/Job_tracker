@@ -1,6 +1,7 @@
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import mammoth from "mammoth";
+import { t } from "./i18n";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -48,7 +49,7 @@ export async function extractCvText(file) {
   if (isPdf(file)) {
     const text = await extractFromPdf(file);
     if (!text) {
-      throw new Error("No se pudo extraer texto del PDF (¿es una imagen escaneada?)");
+      throw new Error(t("cv.extract.pdfEmpty"));
     }
     return text;
   }
@@ -56,16 +57,14 @@ export async function extractCvText(file) {
   if (isDocx(file)) {
     const text = await extractFromDocx(file);
     if (!text) {
-      throw new Error("No se pudo extraer texto del documento Word");
+      throw new Error(t("cv.extract.docxEmpty"));
     }
     return text;
   }
 
   if (isLegacyDoc(file)) {
-    throw new Error(
-      "Los archivos .doc antiguos no son compatibles. Convierte a .docx o pega el texto."
-    );
+    throw new Error(t("cv.extract.legacyDoc"));
   }
 
-  throw new Error("Formato de archivo no compatible para extraer texto");
+  throw new Error(t("cv.extract.unsupported"));
 }

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { deleteMyReview, listReviews, saveMyReview } from "./api";
 import { VERIFICATION_OPTIONS } from "./ReviewForm";
 import StarRating, { AverageStars } from "./StarRating";
+import { useI18n } from "./i18n";
 
-const VERIFICATION_LABELS = { existe: "✓ Dice que existe", fantasma: "👻 Dice que es fantasma" };
+const VERIFICATION_LABELS = { existe: "reviews.saidExists", fantasma: "reviews.saidGhost" };
 
 const RELATIVE_UNITS = [
   ["year", 60 * 60 * 24 * 365],
@@ -14,20 +15,19 @@ const RELATIVE_UNITS = [
   ["minute", 60],
 ];
 
-const relativeFormat = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
-
-function timeAgo(value) {
+function timeAgo(value, language, t) {
+  const relativeFormat = new Intl.RelativeTimeFormat(language, { numeric: "auto" });
   const seconds = (new Date(value).getTime() - Date.now()) / 1000;
   for (const [unit, size] of RELATIVE_UNITS) {
     if (Math.abs(seconds) >= size) {
       return relativeFormat.format(Math.round(seconds / size), unit);
     }
   }
-  return "hace un momento";
+  return t("reviews.justNow");
 }
 
-function fullDate(value) {
-  return new Date(value).toLocaleString("es", { dateStyle: "long", timeStyle: "short" });
+function fullDate(value, language) {
+  return new Date(value).toLocaleString(language, { dateStyle: "long", timeStyle: "short" });
 }
 
 function initials(nombre) {
@@ -56,6 +56,7 @@ function reviewToForm(review) {
 
 // La reseña propia se edita en el mismo lugar donde se lee
 function ReviewEditor({ review, companyId, onDone, onCancel }) {
+  const { t } = useI18n();
   const [form, setForm] = useState(() => reviewToForm(review));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -92,13 +93,13 @@ function ReviewEditor({ review, companyId, onDone, onCancel }) {
           disabled={saving}
         />
         <select
-          aria-label="¿La empresa existe?"
+          aria-label={t("reviews.existsQuestion")}
           value={form.verificacion}
           onChange={(e) => setForm((f) => ({ ...f, verificacion: e.target.value }))}
         >
           {VERIFICATION_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
-              {o.label}
+              {t(o.labelKey)}
             </option>
           ))}
         </select>
@@ -106,7 +107,7 @@ function ReviewEditor({ review, companyId, onDone, onCancel }) {
       <textarea
         rows={4}
         maxLength={2000}
-        aria-label="Comentario"
+        aria-label={t("reviews.comment")}
         value={form.notas}
         onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))}
         autoFocus
@@ -114,10 +115,10 @@ function ReviewEditor({ review, companyId, onDone, onCancel }) {
       {error && <p className="error">{error}</p>}
       <div className="review-form-actions">
         <button type="submit" className="btn btn-primary" disabled={saving || !form.calificacion}>
-          Guardar cambios
+          {t("common.saveChanges")}
         </button>
         <button type="button" className="link-button" onClick={onCancel} disabled={saving}>
-          Cancelar
+          {t("common.cancel")}
         </button>
         <button
           type="button"
@@ -125,7 +126,7 @@ function ReviewEditor({ review, companyId, onDone, onCancel }) {
           onClick={() => run(() => deleteMyReview(companyId))}
           disabled={saving}
         >
-          Borrar mi reseña
+          {t("reviews.deleteMine")}
         </button>
       </div>
     </form>
@@ -133,6 +134,7 @@ function ReviewEditor({ review, companyId, onDone, onCancel }) {
 }
 
 function ReviewPost({ review, isMine, companyId, onChanged }) {
+  const { t, language } = useI18n();
   const [editing, setEditing] = useState(false);
   const date = review.updated_at ?? review.created_at;
   const edited = review.updated_at && review.updated_at !== review.created_at;
@@ -150,18 +152,18 @@ function ReviewPost({ review, isMine, companyId, onChanged }) {
         <div className="review-post-meta">
           <span className="review-author">
             {review.autor}
-            {isMine && <span className="review-mine-badge">Vos</span>}
+            {isMine && <span className="review-mine-badge">{t("reviews.you")}</span>}
           </span>
-          <time className="review-date" dateTime={date} title={fullDate(date)}>
-            {timeAgo(date)}
-            {edited && " · editada"}
+          <time className="review-date" dateTime={date} title={fullDate(date, language)}>
+            {timeAgo(date, language, t)}
+            {edited && t("reviews.edited")}
           </time>
         </div>
         <div className="review-post-rating">
           <AverageStars value={review.calificacion} />
           {review.verificacion && (
             <span className="company-tag" data-verificacion={review.verificacion}>
-              {VERIFICATION_LABELS[review.verificacion]}
+              {t(VERIFICATION_LABELS[review.verificacion])}
             </span>
           )}
         </div>
@@ -181,11 +183,11 @@ function ReviewPost({ review, isMine, companyId, onChanged }) {
           {review.notas ? (
             <p className="review-post-body">{review.notas}</p>
           ) : (
-            <p className="review-post-body is-empty">Calificó sin dejar comentario.</p>
+            <p className="review-post-body is-empty">{t("reviews.noComment")}</p>
           )}
           {isMine && (
             <button type="button" className="link-button review-edit-button" onClick={() => setEditing(true)}>
-              Editar reseña
+              {t("reviews.edit")}
             </button>
           )}
         </>
@@ -195,6 +197,7 @@ function ReviewPost({ review, isMine, companyId, onChanged }) {
 }
 
 function CompanyReviews({ company, user, refreshKey, onChanged }) {
+  const { t } = useI18n();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -212,18 +215,16 @@ function CompanyReviews({ company, user, refreshKey, onChanged }) {
   return (
     <div className="company-reviews">
       <h3 className="reviews-title">
-        Lo que dicen de {company.nombre}
+        {t("reviews.title", { name: company.nombre })}
         {reviews.length > 0 && <span className="reviews-count">{reviews.length}</span>}
       </h3>
 
       {error && <p className="error">{error}</p>}
 
       {loading ? (
-        <p className="cell-muted">Cargando reseñas...</p>
+        <p className="cell-muted">{t("reviews.loading")}</p>
       ) : reviews.length === 0 ? (
-        <p className="reviews-empty">
-          Todavía nadie opinó. Podés dejar la primera reseña en el formulario del final.
-        </p>
+        <p className="reviews-empty">{t("reviews.empty")}</p>
       ) : (
         <div className="review-feed">
           {reviews.map((review) => (

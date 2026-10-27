@@ -1,17 +1,16 @@
 import { useId, useState } from "react";
+import { useI18n } from "./i18n";
 
 const EMPTY_FORM = { nombre: "", email: "", password: "" };
-
-const DEFAULT_INTRO =
-  "Iniciá sesión para agregar empresas, calificarlas y dejar notas. Sin cuenta podés ver lo que opinan los demás.";
 
 function AuthForm({
   onLogin,
   onRegister,
-  intro = DEFAULT_INTRO,
+  intro,
   className = "card",
   autoFocus = false,
 }) {
+  const { t } = useI18n();
   const id = useId();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState(EMPTY_FORM);
@@ -48,14 +47,14 @@ function AuthForm({
   return (
     <section className={`${className} auth-card`}>
       <div className="card-header">
-        <h2>{isRegister ? "Crear cuenta" : "Iniciar sesión"}</h2>
+        <h2>{isRegister ? t("auth.registerTitle") : t("auth.loginTitle")}</h2>
       </div>
-      <p className="auth-intro">{intro}</p>
+      <p className="auth-intro">{intro ?? t("auth.defaultIntro")}</p>
 
       <form onSubmit={handleSubmit} className="auth-form">
         {isRegister && (
           <div className="field">
-            <label htmlFor={`${id}-nombre`}>Nombre</label>
+            <label htmlFor={`${id}-nombre`}>{t("auth.name")}</label>
             <input
               id={`${id}-nombre`}
               name="nombre"
@@ -67,7 +66,7 @@ function AuthForm({
           </div>
         )}
         <div className="field">
-          <label htmlFor={`${id}-email`}>Email</label>
+          <label htmlFor={`${id}-email`}>{t("auth.email")}</label>
           <input
             id={`${id}-email`}
             name="email"
@@ -80,7 +79,7 @@ function AuthForm({
           />
         </div>
         <div className="field">
-          <label htmlFor={`${id}-password`}>Contraseña</label>
+          <label htmlFor={`${id}-password`}>{t("auth.password")}</label>
           <input
             id={`${id}-password`}
             name="password"
@@ -91,21 +90,21 @@ function AuthForm({
             onChange={handleChange}
             required
           />
-          {isRegister && <span className="field-hint">Mínimo 8 caracteres</span>}
+          {isRegister && <span className="field-hint">{t("auth.passwordHint")}</span>}
         </div>
 
         {error && <p className="error">{error}</p>}
 
         <div className="auth-actions">
           <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {isRegister ? "Crear cuenta" : "Entrar"}
+            {isRegister ? t("auth.submitRegister") : t("auth.submitLogin")}
           </button>
           <button
             type="button"
             className="link-button"
             onClick={() => switchMode(isRegister ? "login" : "register")}
           >
-            {isRegister ? "Ya tengo cuenta" : "No tengo cuenta, registrarme"}
+            {isRegister ? t("auth.haveAccount") : t("auth.noAccount")}
           </button>
         </div>
       </form>

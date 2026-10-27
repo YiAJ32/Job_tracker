@@ -2,17 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { listReviews, saveMyReview } from "./api";
 import LoginRequiredModal from "./LoginRequiredModal";
 import StarRating from "./StarRating";
+import { useI18n } from "./i18n";
 
 export const VERIFICATION_OPTIONS = [
-  { value: "", label: "No sé" },
-  { value: "existe", label: "✓ Existe" },
-  { value: "fantasma", label: "👻 Fantasma" },
+  { value: "", labelKey: "reviews.option.unknown" },
+  { value: "existe", labelKey: "reviews.option.exists" },
+  { value: "fantasma", labelKey: "reviews.option.ghost" },
 ];
 
 const EMPTY_REVIEW = { calificacion: null, notas: "", verificacion: "" };
 
 // Formulario solo para reseñas nuevas; las propias se editan desde la lista de reseñas
 function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
+  const { t } = useI18n();
   const { user } = auth;
   const [form, setForm] = useState(EMPTY_REVIEW);
   const [saving, setSaving] = useState(false);
@@ -48,7 +50,7 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
 
   async function publish() {
     if (!companyId) {
-      setError("Elegí la empresa sobre la que querés opinar");
+      setError(t("reviews.pickCompanyError"));
       return;
     }
     setSaving(true);
@@ -57,10 +59,7 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
       // El backend reemplaza la reseña existente; acá no se pisa una anterior sin querer
       const reviews = await listReviews(companyId);
       if (reviews.some((r) => r.user_id === user.id)) {
-        setError(
-          `Ya dejaste una reseña sobre ${company?.nombre ?? "esta empresa"}. ` +
-            "Podés cambiarla con el botón Editar en la lista de reseñas."
-        );
+        setError(t("reviews.alreadyReviewed", { name: company?.nombre ?? t("reviews.thisCompany") }));
         await onSaved(companyId);
         return;
       }
@@ -82,12 +81,12 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
     <section className="card">
       <form className="review-form" onSubmit={handleSave}>
         <div className="card-header">
-          <h2>Escribí tu reseña</h2>
+          <h2>{t("reviews.formTitle")}</h2>
         </div>
 
         <div className="review-form-row">
           <div className="field">
-            <label htmlFor="review-company">Empresa</label>
+            <label htmlFor="review-company">{t("reviews.company")}</label>
             <select
               id="review-company"
               value={companyId ?? ""}
@@ -97,7 +96,7 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
               }}
               required
             >
-              <option value="">Elegí una empresa...</option>
+              <option value="">{t("reviews.pickCompany")}</option>
               {companies.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre}
@@ -106,7 +105,7 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="review-verificacion">¿La empresa existe?</label>
+            <label htmlFor="review-verificacion">{t("reviews.existsQuestion")}</label>
             <select
               id="review-verificacion"
               value={form.verificacion}
@@ -114,7 +113,7 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
             >
               {VERIFICATION_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
-                  {o.label}
+                  {t(o.labelKey)}
                 </option>
               ))}
             </select>
@@ -128,15 +127,15 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
         />
 
         <div className="field">
-          <label htmlFor="review-notas">Comentario</label>
+          <label htmlFor="review-notas">{t("reviews.comment")}</label>
           <textarea
             id="review-notas"
             rows={4}
             maxLength={2000}
             placeholder={
               company
-                ? `Contá tu experiencia con ${company.nombre}: ¿cómo fue el proceso? ¿Respondieron?`
-                : "Contá tu experiencia: ¿cómo fue el proceso? ¿Respondieron? ¿Qué tal el ambiente?"
+                ? t("reviews.placeholderNamed", { name: company.nombre })
+                : t("reviews.placeholder")
             }
             value={form.notas}
             onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))}
@@ -150,9 +149,9 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
             type="submit"
             className="btn btn-primary"
             disabled={saving || !form.calificacion || !companyId}
-            title={form.calificacion ? undefined : "Elegí de 1 a 5 estrellas"}
+            title={form.calificacion ? undefined : t("reviews.pickStars")}
           >
-            Publicar reseña
+            {t("reviews.publish")}
           </button>
         </div>
       </form>
@@ -162,8 +161,8 @@ function ReviewForm({ companies, companyId, onCompanyChange, auth, onSaved }) {
           auth={auth}
           message={
             company
-              ? `Para dejar tu reseña sobre ${company.nombre} necesitás una cuenta.`
-              : "Para dejar una reseña necesitás una cuenta."
+              ? t("reviews.loginNamed", { name: company.nombre })
+              : t("reviews.loginGeneric")
           }
           onClose={closeLoginModal}
         />

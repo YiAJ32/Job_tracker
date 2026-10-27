@@ -9,8 +9,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.security import get_current_user
 from app.db.session import get_db
-from app.models import ApplicationStatus, Company, JobApplication
+from app.models import ApplicationStatus, Company, JobApplication, User
 from app.schemas import ApplicationCreate, ApplicationRead, ApplicationUpdate
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
@@ -46,9 +47,10 @@ def _get_status_or_404(db: Session, estado_id: int) -> ApplicationStatus:
     return status
 
 
-def _get_application_or_404(db: Session, application_id: UUID) -> JobApplication:
+def _get_application_or_404(db: Session, application_id: UUID, user: User) -> JobApplication:
     application = db.get(JobApplication, application_id)
-    if application is None:
+    # Las solicitudes de otros usuarios se tratan como inexistentes
+    if application is None or application.user_id != user.id:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
     return application
 
@@ -78,20 +80,30 @@ def _to_read(application: JobApplication) -> ApplicationRead:
 
 
 @router.get("", response_model=list[ApplicationRead])
-def list_applications(db: Session = Depends(get_db)):
+def list_applications(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
     applications = (
-        db.query(JobApplication).order_by(JobApplication.created_at.desc()).all()
+        db.query(JobApplication)
+        .filter(JobApplication.user_id == user.id)
+        .order_by(JobApplication.created_at.desc())
+        .all()
     )
     return [_to_read(a) for a in applications]
 
 
 @router.post("", response_model=ApplicationRead, status_code=201)
-def create_application(payload: ApplicationCreate, db: Session = Depends(get_db)):
+def create_application(
+    payload: ApplicationCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     _get_status_or_404(db, payload.estado_id)
     company = _get_or_create_company(db, payload.empresa)
 
     application = JobApplication(
         company_id=company.id,
+        user_id=user.id,
         estado_id=payload.estado_id,
         puesto=payload.puesto,
         descripcion_puesto=payload.descripcion_puesto,
@@ -106,16 +118,23 @@ def create_application(payload: ApplicationCreate, db: Session = Depends(get_db)
 
 
 @router.get("/{application_id}", response_model=ApplicationRead)
-def get_application(application_id: UUID, db: Session = Depends(get_db)):
-    application = _get_application_or_404(db, application_id)
+def get_application(
+    application_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    application = _get_application_or_404(db, application_id, user)
     return _to_read(application)
 
 
 @router.put("/{application_id}", response_model=ApplicationRead)
 def update_application(
-    application_id: UUID, payload: ApplicationUpdate, db: Session = Depends(get_db)
+    application_id: UUID,
+    payload: ApplicationUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    application = _get_application_or_404(db, application_id)
+    application = _get_application_or_404(db, application_id, user)
     data = payload.model_dump(exclude_unset=True)
 
     if "empresa" in data:
@@ -133,8 +152,12 @@ def update_application(
 
 
 @router.delete("/{application_id}", status_code=204)
-def delete_application(application_id: UUID, db: Session = Depends(get_db)):
-    application = _get_application_or_404(db, application_id)
+def delete_application(
+    application_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    application = _get_application_or_404(db, application_id, user)
     _delete_cv_file(application)
     db.delete(application)
     db.commit()
@@ -142,9 +165,12 @@ def delete_application(application_id: UUID, db: Session = Depends(get_db)):
 
 @router.post("/{application_id}/cv", response_model=ApplicationRead)
 async def upload_cv(
-    application_id: UUID, file: UploadFile, db: Session = Depends(get_db)
+    application_id: UUID,
+    file: UploadFile,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    application = _get_application_or_404(db, application_id)
+    application = _get_application_or_404(db, application_id, user)
 
     extension = ALLOWED_CV_TYPES.get(file.content_type)
     if extension is None:
@@ -170,8 +196,12 @@ async def upload_cv(
 
 
 @router.get("/{application_id}/cv")
-def get_cv(application_id: UUID, db: Session = Depends(get_db)):
-    application = _get_application_or_404(db, application_id)
+def get_cv(
+    application_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    application = _get_application_or_404(db, application_id, user)
     if not application.cv_stored_filename:
         raise HTTPException(status_code=404, detail="Esta solicitud no tiene CV cargado")
 
@@ -188,8 +218,12 @@ def get_cv(application_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.delete("/{application_id}/cv", response_model=ApplicationRead)
-def delete_cv(application_id: UUID, db: Session = Depends(get_db)):
-    application = _get_application_or_404(db, application_id)
+def delete_cv(
+    application_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    application = _get_application_or_404(db, application_id, user)
     _delete_cv_file(application)
 
     application.cv_original_filename = None

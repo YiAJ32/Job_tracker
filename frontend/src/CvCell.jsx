@@ -2,8 +2,10 @@ import { useRef, useState } from "react";
 import { deleteCv, uploadCv } from "./api";
 import CvPreviewModal from "./CvPreviewModal";
 import { hasAllowedCvExtension } from "./cvValidation";
+import { useI18n } from "./i18n";
 
 function CvCell({ application, onChange }) {
+  const { t } = useI18n();
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -13,7 +15,7 @@ function CvCell({ application, onChange }) {
   async function handleFile(file) {
     if (!file) return;
     if (!hasAllowedCvExtension(file.name)) {
-      setError("Solo se permiten archivos PDF o Word (.pdf, .doc, .docx)");
+      setError(t("cv.onlyPdfWord"));
       return;
     }
     setError(null);
@@ -54,7 +56,7 @@ function CvCell({ application, onChange }) {
           type="button"
           className="cv-chip"
           onClick={() => setPreviewOpen(true)}
-          title="Ver CV"
+          title={t("cv.view")}
         >
           <span className="cv-chip-icon">📄</span>
           <span className="cv-chip-name">{application.cv_original_filename}</span>
@@ -64,8 +66,8 @@ function CvCell({ application, onChange }) {
           className="cv-remove"
           onClick={handleRemove}
           disabled={busy}
-          aria-label="Quitar CV"
-          title="Quitar CV"
+          aria-label={t("cv.remove")}
+          title={t("cv.remove")}
         >
           ×
         </button>
@@ -103,7 +105,7 @@ function CvCell({ application, onChange }) {
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
       <span className="cv-dropzone-text">
-        {busy ? "Subiendo..." : "Arrastra o haz clic"}
+        {busy ? t("cv.uploading") : t("cv.dropShort")}
       </span>
       {error && <span className="cv-error">{error}</span>}
     </div>

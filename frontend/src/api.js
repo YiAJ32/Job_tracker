@@ -1,3 +1,5 @@
+import { getLanguage, t } from "./i18n";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 const TOKEN_KEY = "job-tracker-token";
@@ -19,18 +21,30 @@ export function setToken(token) {
   }
 }
 
-async function request(path, options) {
+// Token de sesión y el idioma elegido, para que el backend responda los errores en ese idioma
+function baseHeaders() {
   const token = getToken();
+  return {
+    "Accept-Language": getLanguage(),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+// FastAPI devuelve un texto en "detail", o una lista cuando falla la validación de datos
+function errorMessage(body, status) {
+  if (typeof body.detail === "string") return body.detail;
+  if (Array.isArray(body.detail)) return t("common.invalidData");
+  return t("common.errorStatus", { status });
+}
+
+async function request(path, options) {
   const res = await fetch(`${API_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: { "Content-Type": "application/json", ...baseHeaders() },
     ...options,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Error ${res.status}`);
+    throw new Error(errorMessage(body, res.status));
   }
   if (res.status === 204) return null;
   return res.json();
@@ -56,6 +70,31 @@ export const login = (data) =>
   request("/api/auth/login", { method: "POST", body: JSON.stringify(data) });
 
 export const getMe = () => request("/api/auth/me");
+
+export const getProfile = () => request("/api/profile");
+
+export const updateProfile = (data) =>
+  request("/api/profile", { method: "PATCH", body: JSON.stringify(data) });
+
+export async function uploadPhoto(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_URL}/api/profile/photo`, {
+    method: "POST",
+    headers: baseHeaders(),
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(errorMessage(body, res.status));
+  }
+  return res.json();
+}
+
+export const deletePhoto = () => request("/api/profile/photo", { method: "DELETE" });
+
+// El backend devuelve rutas relativas (/api/users/...); el <img> necesita la URL completa
+export const photoUrl = (path) => (path ? `${API_URL}${path}` : null);
 
 export const listCompanies = () => request("/api/companies");
 
@@ -84,11 +123,12 @@ export async function uploadCv(id, file) {
   formData.append("file", file);
   const res = await fetch(`${API_URL}/api/applications/${id}/cv`, {
     method: "POST",
+    headers: baseHeaders(),
     body: formData,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Error ${res.status}`);
+    throw new Error(errorMessage(body, res.status));
   }
   return res.json();
 }
@@ -97,10 +137,10 @@ export const deleteCv = (id) =>
   request(`/api/applications/${id}/cv`, { method: "DELETE" });
 
 export async function fetchCvBlob(id) {
-  const res = await fetch(`${API_URL}/api/applications/${id}/cv`);
+  const res = await fetch(`${API_URL}/api/applications/${id}/cv`, { headers: baseHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Error ${res.status}`);
+    throw new Error(errorMessage(body, res.status));
   }
   const blob = await res.blob();
   return { blob, contentType: res.headers.get("Content-Type") };

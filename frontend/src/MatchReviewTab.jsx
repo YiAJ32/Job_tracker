@@ -2,14 +2,10 @@ import { useEffect, useState } from "react";
 import CvDropzoneField from "./CvDropzoneField";
 import { extractCvText } from "./extractCvText";
 import { evaluateMatch } from "./api";
-
-const LEVEL_LABELS = {
-  alto: "Compatibilidad alta",
-  medio: "Compatibilidad media",
-  bajo: "Compatibilidad baja",
-};
+import { useI18n } from "./i18n";
 
 function MatchReviewTab() {
+  const { t } = useI18n();
   const [inputMode, setInputMode] = useState("file");
   const [cvFile, setCvFile] = useState(null);
   const [cvText, setCvText] = useState("");
@@ -76,7 +72,7 @@ function MatchReviewTab() {
   return (
     <section className="card">
       <div className="card-header">
-        <h2>Revisar match</h2>
+        <h2>{t("match.cardTitle")}</h2>
       </div>
 
       <div className="mode-toggle">
@@ -85,14 +81,14 @@ function MatchReviewTab() {
           className={`mode-toggle-btn${inputMode === "file" ? " is-active" : ""}`}
           onClick={() => setInputMode("file")}
         >
-          Subir archivo
+          {t("match.uploadFile")}
         </button>
         <button
           type="button"
           className={`mode-toggle-btn${inputMode === "text" ? " is-active" : ""}`}
           onClick={() => setInputMode("text")}
         >
-          Pegar texto
+          {t("match.pasteText")}
         </button>
       </div>
 
@@ -101,14 +97,14 @@ function MatchReviewTab() {
           <div className="match-dropzone">
             <CvDropzoneField file={cvFile} onFileChange={setCvFile} />
             {extracting && (
-              <p className="match-extract-status">Extrayendo texto del CV...</p>
+              <p className="match-extract-status">{t("match.extracting")}</p>
             )}
             {extractError && <p className="match-extract-status is-error">{extractError}</p>}
           </div>
         ) : (
           <textarea
             className="cv-textarea"
-            placeholder="Pega aquí el contenido de tu CV..."
+            placeholder={t("match.cvPlaceholder")}
             value={cvText}
             onChange={(e) => setCvText(e.target.value)}
             rows={16}
@@ -117,11 +113,11 @@ function MatchReviewTab() {
       </div>
 
       <div className="field match-field-spaced">
-        <label htmlFor="job-description">Descripción del puesto</label>
+        <label htmlFor="job-description">{t("match.jobDescription")}</label>
         <textarea
           id="job-description"
           className="cv-textarea"
-          placeholder="Pega aquí la descripción del puesto de trabajo..."
+          placeholder={t("match.jobPlaceholder")}
           value={jobDescription}
           onChange={(e) => setJobDescription(e.target.value)}
           rows={12}
@@ -137,7 +133,7 @@ function MatchReviewTab() {
           disabled={!canEvaluate || evaluating}
           onClick={handleEvaluate}
         >
-          {evaluating ? "Evaluando..." : "Evaluar"}
+          {evaluating ? t("match.evaluating") : t("match.evaluate")}
         </button>
       </div>
 
@@ -147,6 +143,7 @@ function MatchReviewTab() {
 }
 
 function MatchResultCard({ result }) {
+  const { t } = useI18n();
   const { score, level, matched_keywords, missing_keywords, matched_count, total_keywords } =
     result;
 
@@ -158,20 +155,20 @@ function MatchResultCard({ result }) {
         </div>
         <div>
           <p className="match-level-label" data-level={level}>
-            {LEVEL_LABELS[level] ?? "Compatibilidad"}
+            {level ? t(`match.level.${level}`) : t("match.levelFallback")}
           </p>
           <p className="match-score-sub">
-            {matched_count} de {total_keywords} palabras clave del puesto encontradas en tu CV
+            {t("match.summary", { matched: matched_count, total: total_keywords })}
           </p>
         </div>
       </div>
 
       <div className="match-keywords-grid">
         <div>
-          <h3 className="match-keywords-title">Coinciden</h3>
+          <h3 className="match-keywords-title">{t("match.matched")}</h3>
           <div className="match-keyword-list">
             {matched_keywords.length === 0 && (
-              <p className="match-keywords-empty">Ninguna palabra clave coincide todavía</p>
+              <p className="match-keywords-empty">{t("match.noneMatched")}</p>
             )}
             {matched_keywords.map((kw) => (
               <span key={kw.term} className="match-keyword-chip is-matched">
@@ -181,10 +178,10 @@ function MatchResultCard({ result }) {
           </div>
         </div>
         <div>
-          <h3 className="match-keywords-title">Faltan</h3>
+          <h3 className="match-keywords-title">{t("match.missing")}</h3>
           <div className="match-keyword-list">
             {missing_keywords.length === 0 && (
-              <p className="match-keywords-empty">¡Tu CV cubre todas las palabras clave!</p>
+              <p className="match-keywords-empty">{t("match.allCovered")}</p>
             )}
             {missing_keywords.map((kw) => (
               <span key={kw.term} className="match-keyword-chip is-missing">

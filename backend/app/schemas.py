@@ -53,6 +53,7 @@ class UserRead(BaseModel):
     id: UUID
     nombre: str
     email: str
+    foto_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -133,3 +134,56 @@ class ApplicationRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProfileUser(BaseModel):
+    id: UUID
+    nombre: str
+    email: str
+    foto_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ProfileUpdate(BaseModel):
+    nombre: str = Field(min_length=1, max_length=80)
+
+
+class ProfileStatusCount(BaseModel):
+    id: int
+    nombre: str
+    count: int
+
+
+class ProfileApplication(BaseModel):
+    id: UUID
+    empresa: str
+    puesto: str
+    estado: str
+    fecha_aplicacion: Optional[date] = None
+    created_at: datetime
+
+
+class ProfileApplications(BaseModel):
+    total: int
+    por_estado: list[ProfileStatusCount]
+    recientes: list[ProfileApplication]
+
+
+class ProfileReview(BaseModel):
+    id: UUID
+    company_id: UUID
+    empresa: str
+    calificacion: int
+    notas: Optional[str] = None
+    verificacion: Optional[str] = None
+    updated_at: Optional[datetime] = None
+
+
+class ProfileRead(BaseModel):
+    user: ProfileUser
+    solicitudes: ProfileApplications
+    resenas: list[ProfileReview]
+    empresas_agregadas: list[CompanyRead]

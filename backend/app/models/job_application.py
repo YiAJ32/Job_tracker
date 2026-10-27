@@ -12,6 +12,9 @@ class JobApplication(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     estado_id = Column(SmallInteger, ForeignKey("application_statuses.id"), nullable=False)
     puesto = Column(String, nullable=False)
     descripcion_puesto = Column(Text, nullable=True)
