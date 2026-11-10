@@ -8,6 +8,15 @@ class Settings(BaseSettings):
     photo_storage_dir: str = "storage/photos"
     jwt_secret: str
     jwt_expire_minutes: int = 60 * 24 * 7
+    # Sin smtp_host los códigos de confirmación se muestran en la consola del backend
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    verification_code_minutes: int = 15
+    # Las cuentas que no confirman el email en este plazo se borran
+    unverified_account_days: int = 7
 
     class Config:
         env_file = ".env"

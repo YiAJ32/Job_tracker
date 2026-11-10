@@ -1,12 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createCompany, listCompanies } from "./api";
+import { listCompanies, safeUrl } from "./api";
 import CompanyReviews from "./CompanyReviews";
-import LoginRequiredModal from "./LoginRequiredModal";
 import ReviewForm from "./ReviewForm";
 import { AverageStars } from "./StarRating";
 import { useI18n } from "./i18n";
-
-const EMPTY_COMPANY = { nombre: "", sitio_web: "" };
 
 // Resume los votos "existe / fantasma" de todas las reseñas
 function verificationConsensus({ votos_existe: existe, votos_fantasma: fantasma }, t) {
@@ -24,14 +21,10 @@ function CompanyRatingTab({ auth, focusRequest, onChange }) {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [newCompany, setNewCompany] = useState(EMPTY_COMPANY);
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState(null);
   const [reviewCompanyId, setReviewCompanyId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  // Un invitado tocó "Agregar": al iniciar sesión se crea la empresa que ya escribió
-  const pendingCreate = useRef(false);
   const rowRefs = useRef(new Map());
   // Fila que hay que mantener a la vista cuando cambia la empresa abierta
   const scrollAnchor = useRef(null);
@@ -55,7 +48,7 @@ function CompanyRatingTab({ auth, focusRequest, onChange }) {
     const row = rowRefs.current.get(id);
     scrollAnchor.current = row ? { id, top: row.getBoundingClientRect().top } : null;
     setOpenId(next);
-    // El formulario del final apunta a la empresa que se está leyendo
+    // El formulario de reseña apunta a la empresa que se está leyendo
     if (next) setReviewCompanyId(next);
   }
 
@@ -91,46 +84,6 @@ function CompanyRatingTab({ auth, focusRequest, onChange }) {
     setReviewCompanyId(focusRequest.id);
   }, [focusRequest]);
 
-  useEffect(() => {
-    if (!user || !pendingCreate.current) return;
-    pendingCreate.current = false;
-    create();
-  }, [user?.id]);
-
-  // Sin sesión se puede completar el formulario; el login se pide recién al agregar
-  function handleCreate(e) {
-    e.preventDefault();
-    if (!user) {
-      pendingCreate.current = true;
-      setShowLoginModal(true);
-      return;
-    }
-    create();
-  }
-
-  function closeLoginModal() {
-    pendingCreate.current = false;
-    setShowLoginModal(false);
-  }
-
-  async function create() {
-    setError(null);
-    try {
-      const created = await createCompany({
-        nombre: newCompany.nombre,
-        sitio_web: newCompany.sitio_web || null,
-      });
-      setNewCompany(EMPTY_COMPANY);
-      setSearch("");
-      await loadCompanies();
-      scrollAnchor.current = { id: created.id };
-      setOpenId(created.id);
-      setReviewCompanyId(created.id);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
   const term = search.trim().toLowerCase();
   const visible = term
     ? companies.filter((c) => c.nombre.toLowerCase().includes(term))
@@ -138,37 +91,17 @@ function CompanyRatingTab({ auth, focusRequest, onChange }) {
 
   return (
     <div>
-      <section className="card">
-        <div className="card-header">
-          <h2>{t("rating.addTitle")}</h2>
-        </div>
-        <form onSubmit={handleCreate} className="app-form">
-          <div className="field">
-            <label htmlFor="company-nombre">{t("rating.name")}</label>
-            <input
-              id="company-nombre"
-              placeholder={t("rating.namePlaceholder")}
-              value={newCompany.nombre}
-              onChange={(e) => setNewCompany((c) => ({ ...c, nombre: e.target.value }))}
-              required
-            />
-          </div>
-          <div className="field span-2">
-            <label htmlFor="company-sitio">{t("rating.website")}</label>
-            <input
-              id="company-sitio"
-              placeholder="https://..."
-              value={newCompany.sitio_web}
-              onChange={(e) => setNewCompany((c) => ({ ...c, sitio_web: e.target.value }))}
-            />
-          </div>
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary">
-              {t("rating.add")}
-            </button>
-          </div>
-        </form>
-      </section>
+      <ReviewForm
+        companies={companies}
+        companyId={reviewCompanyId}
+        onCompanyChange={setReviewCompanyId}
+        auth={auth}
+        onSaved={(companyId) => {
+          // Un filtro activo podría esconder la empresa recién reseñada
+          setSearch("");
+          return handleReviewSaved(companyId);
+        }}
+      />
 
       <section className="card">
         <div className="card-header">
@@ -232,9 +165,9 @@ function CompanyRatingTab({ auth, focusRequest, onChange }) {
                         </span>
                       </div>
                       <span className="cell-muted">
-                        {company.sitio_web && (
+                        {safeUrl(company.sitio_web) && (
                           <>
-                            <a href={company.sitio_web} target="_blank" rel="noreferrer">
+                            <a href={safeUrl(company.sitio_web)} target="_blank" rel="noopener noreferrer">
                               {t("rating.websiteLink")}
                             </a>
                             {" · "}
@@ -277,29 +210,6 @@ function CompanyRatingTab({ auth, focusRequest, onChange }) {
           </ul>
         )}
       </section>
-
-      {companies.length > 0 && (
-        <ReviewForm
-          companies={companies}
-          companyId={reviewCompanyId}
-          onCompanyChange={setReviewCompanyId}
-          auth={auth}
-          onSaved={handleReviewSaved}
-        />
-      )}
-
-      {showLoginModal && !user && (
-        <LoginRequiredModal
-          auth={auth}
-          title={t("rating.loginTitle")}
-          message={
-            newCompany.nombre.trim()
-              ? t("rating.loginNamed", { name: newCompany.nombre.trim() })
-              : t("rating.loginGeneric")
-          }
-          onClose={closeLoginModal}
-        />
-      )}
     </div>
   );
 }

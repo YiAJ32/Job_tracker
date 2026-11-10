@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import mammoth from "mammoth";
 import { fetchCvBlob } from "./api";
 import { useI18n } from "./i18n";
 
@@ -45,6 +44,8 @@ function CvPreviewModal({ source, onClose }) {
           setStatus("pdf");
         } else if (contentType === DOCX_TYPE) {
           const arrayBuffer = await blob.arrayBuffer();
+          // mammoth se carga solo al previsualizar un Word, para no agrandar la carga inicial
+          const { default: mammoth } = await import("mammoth");
           const result = await mammoth.convertToHtml({ arrayBuffer });
           if (cancelled) return;
           setDocxHtml(result.value);

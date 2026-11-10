@@ -37,17 +37,57 @@ function errorMessage(body, status) {
   return t("common.errorStatus", { status });
 }
 
-async function request(path, options) {
-  const res = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...baseHeaders() },
-    ...options,
-  });
+// Se llama cuando el backend rechaza el token (vencido o invalidado por un cambio de contraseña)
+let unauthorizedHandler = null;
+
+export function onUnauthorized(handler) {
+  unauthorizedHandler = handler;
+}
+
+// Hace el fetch y convierte las respuestas con error en un Error con el mensaje del backend
+async function send(path, options = {}) {
+  const sentToken = Boolean(getToken());
+  const res = await fetch(`${API_URL}${path}`, options);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(errorMessage(body, res.status));
+    // Solo un 401 con token es una sesión vencida; sin token es, por ejemplo, un login fallido
+    if (res.status === 401 && sentToken) {
+      setToken(null);
+      unauthorizedHandler?.();
+    }
+    // El status permite reaccionar a errores puntuales, como una cuenta sin confirmar (403)
+    const error = new Error(errorMessage(body, res.status));
+    error.status = res.status;
+    throw error;
   }
+  return res;
+}
+
+async function request(path, options) {
+  const res = await send(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...baseHeaders() },
+  });
   if (res.status === 204) return null;
   return res.json();
+}
+
+async function upload(path, file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await send(path, { method: "POST", headers: baseHeaders(), body: formData });
+  return res.json();
+}
+
+// Solo enlaces http(s): un "javascript:" guardado por otro usuario ejecutaría código al hacer clic
+export function safeUrl(url) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : null;
+  } catch {
+    return null;
+  }
 }
 
 export const listStatuses = () => request("/api/statuses");
@@ -66,6 +106,18 @@ export const deleteApplication = (id) =>
 export const register = (data) =>
   request("/api/auth/register", { method: "POST", body: JSON.stringify(data) });
 
+export const verifyEmail = (data) =>
+  request("/api/auth/verify", { method: "POST", body: JSON.stringify(data) });
+
+export const resendCode = (email) =>
+  request("/api/auth/resend-code", { method: "POST", body: JSON.stringify({ email }) });
+
+export const forgotPassword = (email) =>
+  request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+
+export const resetPassword = (data) =>
+  request("/api/auth/reset-password", { method: "POST", body: JSON.stringify(data) });
+
 export const login = (data) =>
   request("/api/auth/login", { method: "POST", body: JSON.stringify(data) });
 
@@ -76,20 +128,7 @@ export const getProfile = () => request("/api/profile");
 export const updateProfile = (data) =>
   request("/api/profile", { method: "PATCH", body: JSON.stringify(data) });
 
-export async function uploadPhoto(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch(`${API_URL}/api/profile/photo`, {
-    method: "POST",
-    headers: baseHeaders(),
-    body: formData,
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(errorMessage(body, res.status));
-  }
-  return res.json();
-}
+export const uploadPhoto = (file) => upload("/api/profile/photo", file);
 
 export const deletePhoto = () => request("/api/profile/photo", { method: "DELETE" });
 
@@ -118,30 +157,13 @@ export const evaluateMatch = (cvText, jobDescription) =>
     body: JSON.stringify({ cv_text: cvText, job_description: jobDescription }),
   });
 
-export async function uploadCv(id, file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch(`${API_URL}/api/applications/${id}/cv`, {
-    method: "POST",
-    headers: baseHeaders(),
-    body: formData,
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(errorMessage(body, res.status));
-  }
-  return res.json();
-}
+export const uploadCv = (id, file) => upload(`/api/applications/${id}/cv`, file);
 
 export const deleteCv = (id) =>
   request(`/api/applications/${id}/cv`, { method: "DELETE" });
 
 export async function fetchCvBlob(id) {
-  const res = await fetch(`${API_URL}/api/applications/${id}/cv`, { headers: baseHeaders() });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(errorMessage(body, res.status));
-  }
+  const res = await send(`/api/applications/${id}/cv`, { headers: baseHeaders() });
   const blob = await res.blob();
   return { blob, contentType: res.headers.get("Content-Type") };
 }

@@ -31,6 +31,10 @@ function LoginRequiredModal({ auth, title, message, onClose }) {
           className="login-modal-form"
           onLogin={auth.login}
           onRegister={auth.register}
+          onVerify={auth.verifyEmail}
+          onResend={auth.resendCode}
+          onForgot={auth.forgotPassword}
+          onReset={auth.resetPassword}
           intro={t("auth.modalIntro")}
           autoFocus
         />

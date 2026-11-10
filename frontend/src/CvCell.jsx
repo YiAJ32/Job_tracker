@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { deleteCv, uploadCv } from "./api";
 import CvPreviewModal from "./CvPreviewModal";
-import { hasAllowedCvExtension } from "./cvValidation";
+import { cvFileError } from "./cvValidation";
 import { useI18n } from "./i18n";
 
 function CvCell({ application, onChange }) {
@@ -14,8 +14,9 @@ function CvCell({ application, onChange }) {
 
   async function handleFile(file) {
     if (!file) return;
-    if (!hasAllowedCvExtension(file.name)) {
-      setError(t("cv.onlyPdfWord"));
+    const problem = cvFileError(file);
+    if (problem) {
+      setError(t(problem));
       return;
     }
     setError(null);

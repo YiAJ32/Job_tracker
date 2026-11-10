@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import get_current_user
+from app.core.validation import clean_url, require_text
 from app.db.session import get_db
 from app.models import ApplicationStatus, Company, JobApplication, User
 from app.schemas import ApplicationCreate, ApplicationRead, ApplicationUpdate
@@ -21,13 +22,18 @@ ALLOWED_CV_TYPES = {
     "application/msword": ".doc",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
 }
+MAX_CV_BYTES = 5 * 1024 * 1024
 
 STORAGE_DIR = Path(settings.cv_storage_dir)
 STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
+EMPTY_COMPANY = "La empresa no puede estar vacía"
+EMPTY_POSITION = "El puesto no puede estar vacío"
+
+
 def _get_or_create_company(db: Session, nombre: str) -> Company:
-    nombre = nombre.strip()
+    nombre = require_text(nombre, EMPTY_COMPANY)
     company = (
         db.query(Company)
         .filter(func.lower(Company.nombre) == nombre.lower())
@@ -105,9 +111,9 @@ def create_application(
         company_id=company.id,
         user_id=user.id,
         estado_id=payload.estado_id,
-        puesto=payload.puesto,
+        puesto=require_text(payload.puesto, EMPTY_POSITION),
         descripcion_puesto=payload.descripcion_puesto,
-        enlace_oferta=payload.enlace_oferta,
+        enlace_oferta=clean_url(payload.enlace_oferta),
         fecha_aplicacion=payload.fecha_aplicacion,
         notas=payload.notas,
     )
@@ -142,6 +148,10 @@ def update_application(
         application.company_id = company.id
     if "estado_id" in data:
         _get_status_or_404(db, data["estado_id"])
+    if "puesto" in data:
+        data["puesto"] = require_text(data["puesto"], EMPTY_POSITION)
+    if "enlace_oferta" in data:
+        data["enlace_oferta"] = clean_url(data["enlace_oferta"])
 
     for field, value in data.items():
         setattr(application, field, value)
@@ -179,10 +189,13 @@ async def upload_cv(
             detail="Solo se permiten archivos PDF o Word (.pdf, .doc, .docx)",
         )
 
-    _delete_cv_file(application)
+    # Lee un byte de más para saber si se pasa del límite sin cargar todo el archivo
+    contents = await file.read(MAX_CV_BYTES + 1)
+    if len(contents) > MAX_CV_BYTES:
+        raise HTTPException(status_code=422, detail="El CV no puede pesar más de 5 MB")
 
+    _delete_cv_file(application)
     stored_filename = f"{uuid.uuid4()}{extension}"
-    contents = await file.read()
     (STORAGE_DIR / stored_filename).write_bytes(contents)
 
     application.cv_original_filename = file.filename

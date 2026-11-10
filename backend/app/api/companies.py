@@ -5,6 +5,7 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
+from app.core.validation import clean_url, require_text
 from app.db.session import get_db
 from app.models import Company, CompanyReview, User
 from app.schemas import CompanyCreate, CompanyRead, ReviewRead, ReviewUpsert
@@ -80,7 +81,7 @@ def create_company(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    nombre = payload.nombre.strip()
+    nombre = require_text(payload.nombre, "El nombre de la empresa no puede estar vacío")
     existing = (
         db.query(Company).filter(func.lower(Company.nombre) == nombre.lower()).first()
     )
@@ -89,7 +90,7 @@ def create_company(
 
     company = Company(
         nombre=nombre,
-        sitio_web=(payload.sitio_web or "").strip() or None,
+        sitio_web=clean_url(payload.sitio_web),
         created_by_id=user.id,
     )
     db.add(company)
