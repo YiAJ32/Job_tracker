@@ -61,6 +61,11 @@ const es = {
   "applications.viewOffer": "Ver oferta",
   "applications.delete": "Eliminar",
   "applications.deleteLabel": "Eliminar solicitud",
+  "applications.edit": "Editar",
+  "applications.editLabel": "Editar la solicitud de {puesto} en {empresa}",
+  "applications.editTitle": "Editar solicitud",
+  "applications.description": "Descripción del puesto",
+  "applications.descriptionPlaceholder": "Pega aquí la descripción de la oferta, para tenerla aunque la quiten del sitio",
   "applications.deleteConfirm": "¿Eliminar la solicitud de {puesto} en {empresa}? No se puede deshacer.",
   "applications.cvUploadFailed": "La solicitud se guardó, pero el CV no se pudo subir: {error}. Podés subirlo desde la tabla.",
 

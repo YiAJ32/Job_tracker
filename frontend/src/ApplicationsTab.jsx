@@ -8,55 +8,31 @@ import {
   updateApplication,
   uploadCv,
 } from "./api";
+import ApplicationFields, {
+  EMPTY_APPLICATION_FORM,
+  StatusSelect,
+  formToPayload,
+  slugifyStatus,
+} from "./ApplicationFields";
 import CvCell from "./CvCell";
 import CvDropzoneField from "./CvDropzoneField";
+import EditApplicationModal from "./EditApplicationModal";
 import { useI18n, useStatusLabel } from "./i18n";
 
-const EMPTY_FORM = {
-  empresa: "",
-  puesto: "",
-  estado_id: "",
-  enlace_oferta: "",
-  fecha_aplicacion: "",
-  notas: "",
-};
-
-export function slugifyStatus(nombre) {
-  return (nombre ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/\s+/g, "-");
-}
-
-function StatusSelect({ value, statuses, onChange, className }) {
-  const statusLabel = useStatusLabel();
-  const current = statuses.find((s) => String(s.id) === String(value));
-  return (
-    <select
-      className={className}
-      data-status={slugifyStatus(current?.nombre)}
-      value={value}
-      onChange={onChange}
-    >
-      {statuses.map((s) => (
-        <option key={s.id} value={s.id}>
-          {statusLabel(s.nombre)}
-        </option>
-      ))}
-    </select>
-  );
-}
+// Se reexporta porque el perfil lo importa desde acá
+export { slugifyStatus };
 
 function ApplicationsTab({ focusFormRequest = 0, onChange }) {
   const { t, formatDate } = useI18n();
   const statusLabel = useStatusLabel();
   const [applications, setApplications] = useState([]);
   const [statuses, setStatuses] = useState([]);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(EMPTY_APPLICATION_FORM);
   const [cvFile, setCvFile] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Solicitud abierta en el formulario de edición
+  const [editing, setEditing] = useState(null);
 
   async function loadAll() {
     setLoading(true);
@@ -101,13 +77,7 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
     setError(null);
     let created;
     try {
-      created = await createApplication({
-        ...form,
-        estado_id: Number(form.estado_id),
-        fecha_aplicacion: form.fecha_aplicacion || null,
-        enlace_oferta: form.enlace_oferta || null,
-        notas: form.notas || null,
-      });
+      created = await createApplication(formToPayload(form));
     } catch (err) {
       setError(err.message);
       return;
@@ -122,7 +92,7 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
         cvError = err.message;
       }
     }
-    setForm((f) => ({ ...EMPTY_FORM, estado_id: f.estado_id }));
+    setForm((f) => ({ ...EMPTY_APPLICATION_FORM, estado_id: f.estado_id }));
     setCvFile(null);
     await loadAll();
     if (cvError) setError(t("applications.cvUploadFailed", { error: cvError }));
@@ -172,71 +142,17 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
           <h2>{t("applications.newTitle")}</h2>
         </div>
         <form onSubmit={handleSubmit} className="app-form">
-          <div className="field">
-            <label htmlFor="empresa">{t("applications.company")}</label>
-            <input
-              id="empresa"
-              name="empresa"
-              placeholder={t("applications.companyPlaceholder")}
-              value={form.empresa}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="puesto">{t("applications.position")}</label>
-            <input
-              id="puesto"
-              name="puesto"
-              placeholder={t("applications.positionPlaceholder")}
-              value={form.puesto}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="estado_id">{t("applications.status")}</label>
-            <StatusSelect
-              className=""
-              value={form.estado_id}
-              statuses={statuses}
-              onChange={(e) => handleChange(e)}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="fecha_aplicacion">{t("applications.date")}</label>
-            <input
-              id="fecha_aplicacion"
-              name="fecha_aplicacion"
-              type="date"
-              value={form.fecha_aplicacion}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="field span-2">
-            <label htmlFor="enlace_oferta">{t("applications.link")}</label>
-            <input
-              id="enlace_oferta"
-              name="enlace_oferta"
-              placeholder="https://..."
-              value={form.enlace_oferta}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="field span-2">
-            <label htmlFor="notas">{t("applications.notes")}</label>
-            <input
-              id="notas"
-              name="notas"
-              placeholder={t("applications.notesPlaceholder")}
-              value={form.notas}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="field">
-            <label>{t("applications.cv")}</label>
-            <CvDropzoneField file={cvFile} onFileChange={setCvFile} />
-          </div>
+          <ApplicationFields
+            form={form}
+            statuses={statuses}
+            onChange={handleChange}
+            extra={
+              <div className="field">
+                <label>{t("applications.cv")}</label>
+                <CvDropzoneField file={cvFile} onFileChange={setCvFile} />
+              </div>
+            }
+          />
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">
               {t("applications.add")}
@@ -313,8 +229,18 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
                     <td data-label={t("applications.cv")}>
                       <CvCell application={app} onChange={loadAll} />
                     </td>
-                    <td data-label="">
+                    <td data-label="" className="cell-actions">
                       <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => setEditing(app)}
+                        aria-label={t("applications.editLabel", { puesto: app.puesto, empresa: app.empresa })}
+                        title={t("applications.edit")}
+                      >
+                        {t("applications.edit")}
+                      </button>
+                      <button
+                        type="button"
                         className="btn-ghost-danger"
                         onClick={() => handleDelete(app)}
                         aria-label={t("applications.deleteLabel")}
@@ -330,6 +256,18 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
           </div>
         )}
       </section>
+
+      {editing && (
+        <EditApplicationModal
+          application={editing}
+          statuses={statuses}
+          onClose={() => setEditing(null)}
+          onSaved={async () => {
+            setEditing(null);
+            await loadAll();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -60,6 +60,11 @@ const en = {
   "applications.viewOffer": "View posting",
   "applications.delete": "Delete",
   "applications.deleteLabel": "Delete application",
+  "applications.edit": "Edit",
+  "applications.editLabel": "Edit the {puesto} application at {empresa}",
+  "applications.editTitle": "Edit application",
+  "applications.description": "Job description",
+  "applications.descriptionPlaceholder": "Paste the job posting here, so you keep it even if it's taken down",
   "applications.deleteConfirm": "Delete the {puesto} application at {empresa}? This can't be undone.",
   "applications.cvUploadFailed": "The application was saved, but the CV couldn't be uploaded: {error}. You can upload it from the table.",
 

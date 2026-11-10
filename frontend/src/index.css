@@ -536,6 +536,56 @@ button {
   color: var(--danger-hover);
 }
 
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-ghost:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.cell-actions {
+  white-space: nowrap;
+}
+
+/* Modal para editar una solicitud */
+
+.edit-modal {
+  width: 100%;
+  max-width: 760px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem 1.75rem 1.75rem;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.edit-modal .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.edit-modal-actions {
+  gap: 0.6rem;
+}
+
+.app-form .span-all {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 560px) {
+  .edit-modal {
+    padding: 1.25rem;
+  }
+}
+
 /* Error banner */
 
 .error {

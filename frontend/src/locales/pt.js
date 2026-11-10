@@ -61,6 +61,11 @@ const pt = {
   "applications.viewOffer": "Ver vaga",
   "applications.delete": "Excluir",
   "applications.deleteLabel": "Excluir candidatura",
+  "applications.edit": "Editar",
+  "applications.editLabel": "Editar a candidatura de {puesto} na {empresa}",
+  "applications.editTitle": "Editar candidatura",
+  "applications.description": "Descrição da vaga",
+  "applications.descriptionPlaceholder": "Cole aqui a descrição da vaga, para tê-la mesmo se for removida do site",
   "applications.deleteConfirm": "Excluir a candidatura de {puesto} na {empresa}? Isso não pode ser desfeito.",
   "applications.cvUploadFailed": "A candidatura foi salva, mas o CV não pôde ser enviado: {error}. Você pode enviá-lo pela tabela.",
 
