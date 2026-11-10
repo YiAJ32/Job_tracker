@@ -4,6 +4,7 @@ import {
   deleteApplication,
   listApplications,
   listStatuses,
+  safeUrl,
   updateApplication,
   uploadCv,
 } from "./api";
@@ -48,7 +49,7 @@ function StatusSelect({ value, statuses, onChange, className }) {
 }
 
 function ApplicationsTab({ focusFormRequest = 0, onChange }) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const statusLabel = useStatusLabel();
   const [applications, setApplications] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -98,23 +99,33 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    let created;
     try {
-      const created = await createApplication({
+      created = await createApplication({
         ...form,
         estado_id: Number(form.estado_id),
         fecha_aplicacion: form.fecha_aplicacion || null,
         enlace_oferta: form.enlace_oferta || null,
         notas: form.notas || null,
       });
-      if (cvFile) {
-        await uploadCv(created.id, cvFile);
-      }
-      setForm((f) => ({ ...EMPTY_FORM, estado_id: f.estado_id }));
-      setCvFile(null);
-      await loadAll();
     } catch (err) {
       setError(err.message);
+      return;
     }
+
+    // La solicitud ya existe: el formulario se limpia aunque falle el CV, para no crearla dos veces
+    let cvError = null;
+    if (cvFile) {
+      try {
+        await uploadCv(created.id, cvFile);
+      } catch (err) {
+        cvError = err.message;
+      }
+    }
+    setForm((f) => ({ ...EMPTY_FORM, estado_id: f.estado_id }));
+    setCvFile(null);
+    await loadAll();
+    if (cvError) setError(t("applications.cvUploadFailed", { error: cvError }));
   }
 
   async function handleStatusChange(app, estado_id) {
@@ -126,9 +137,12 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
     }
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(app) {
+    if (!window.confirm(t("applications.deleteConfirm", { puesto: app.puesto, empresa: app.empresa }))) {
+      return;
+    }
     try {
-      await deleteApplication(id);
+      await deleteApplication(app.id);
       await loadAll();
     } catch (err) {
       setError(err.message);
@@ -282,11 +296,11 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
                       />
                     </td>
                     <td data-label={t("applications.date")} className="cell-muted">
-                      {app.fecha_aplicacion ?? "-"}
+                      {formatDate(app.fecha_aplicacion)}
                     </td>
                     <td data-label={t("applications.linkColumn")} className="cell-link">
-                      {app.enlace_oferta ? (
-                        <a href={app.enlace_oferta} target="_blank" rel="noreferrer">
+                      {safeUrl(app.enlace_oferta) ? (
+                        <a href={safeUrl(app.enlace_oferta)} target="_blank" rel="noreferrer">
                           {t("applications.viewOffer")}
                         </a>
                       ) : (
@@ -302,7 +316,7 @@ function ApplicationsTab({ focusFormRequest = 0, onChange }) {
                     <td data-label="">
                       <button
                         className="btn-ghost-danger"
-                        onClick={() => handleDelete(app.id)}
+                        onClick={() => handleDelete(app)}
                         aria-label={t("applications.deleteLabel")}
                         title={t("applications.delete")}
                       >

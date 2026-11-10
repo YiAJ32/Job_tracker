@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,8 +13,19 @@ from app.api.statuses import router as statuses_router
 from app.api.users import router as users_router
 from app.core.config import settings
 from app.core.i18n import preferred_language, translate_message
+from app.db.session import SessionLocal
+from app.services.accounts import purge_unverified_users
 
-app = FastAPI(title="Job Tracker API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Limpia las cuentas sin confirmar al arrancar; el registro también lo hace cada vez
+    with SessionLocal() as db:
+        purge_unverified_users(db)
+    yield
+
+
+app = FastAPI(title="Job Tracker API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import CvDropzoneField from "./CvDropzoneField";
-import { extractCvText } from "./extractCvText";
 import { evaluateMatch } from "./api";
 import { useI18n } from "./i18n";
 
@@ -31,7 +30,9 @@ function MatchReviewTab() {
     setExtracting(true);
     setExtractError(null);
 
-    extractCvText(cvFile)
+    // pdf.js y mammoth pesan ~1 MB: se descargan recién cuando se sube un CV
+    import("./extractCvText")
+      .then(({ extractCvText }) => extractCvText(cvFile))
       .then((text) => {
         if (cancelled) return;
         setExtractedCvText(text);

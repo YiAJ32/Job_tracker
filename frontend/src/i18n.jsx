@@ -61,6 +61,13 @@ export function hasTranslation(key) {
   return lookup(currentLanguage, key) !== undefined;
 }
 
+// "2026-11-10" (fecha sin hora) se toma como día local: new Date() la leería en UTC
+// y en América mostraría el día anterior
+function parseDate(value) {
+  const match = typeof value === "string" && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : new Date(value);
+}
+
 const I18nContext = createContext(null);
 
 export function I18nProvider({ children }) {
@@ -87,7 +94,7 @@ export function I18nProvider({ children }) {
       setLanguage,
       t: (key, vars) => translate(language, key, vars),
       formatDate: (date, options = { dateStyle: "medium" }) =>
-        date ? new Date(date).toLocaleDateString(language, options) : "-",
+        date ? parseDate(date).toLocaleDateString(language, options) : "-",
     }),
     [language, setLanguage]
   );

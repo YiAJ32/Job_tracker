@@ -41,7 +41,26 @@ class ApplicationUpdate(BaseModel):
 class UserRegister(BaseModel):
     nombre: str = Field(min_length=1, max_length=80)
     email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    password: str = Field(min_length=8, max_length=72)
+    password: str
+
+
+class RegisterResponse(BaseModel):
+    email: str
+
+
+class EmailVerify(BaseModel):
+    email: str
+    codigo: str = Field(pattern=r"^\d{6}$")
+
+
+class EmailOnly(BaseModel):
+    email: str
+
+
+class PasswordReset(BaseModel):
+    email: str
+    codigo: str = Field(pattern=r"^\d{6}$")
+    password: str
 
 
 class UserLogin(BaseModel):

@@ -45,6 +45,11 @@ function App() {
     else setProfile(null);
   }, [auth.user?.id, refreshProfile]);
 
+  // Si la sesión venció mientras se usaba la página, se pide entrar de nuevo
+  useEffect(() => {
+    if (auth.sessionExpired) setShowLogin(true);
+  }, [auth.sessionExpired]);
+
   // Al cerrar sesión el perfil deja de existir
   useEffect(() => {
     if (!auth.user && !auth.checking && activeTab === "profile") setActiveTab("applications");
@@ -191,8 +196,8 @@ function App() {
       {showLogin && !auth.user && (
         <LoginRequiredModal
           auth={auth}
-          title={t("app.login")}
-          message={t("app.loginMessage")}
+          title={auth.sessionExpired ? t("app.sessionExpiredTitle") : t("app.login")}
+          message={auth.sessionExpired ? t("app.sessionExpired") : t("app.loginMessage")}
           onClose={() => setShowLogin(false)}
         />
       )}

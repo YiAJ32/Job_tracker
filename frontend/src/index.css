@@ -1164,6 +1164,43 @@ button.user-chip:hover {
   color: var(--text-faint);
 }
 
+.password-rules {
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.password-rules li.met {
+  color: #12896f;
+}
+
+:root[data-theme="dark"] .password-rules li.met {
+  color: #4fc6a3;
+}
+
+.auth-forgot {
+  align-self: flex-start;
+  font-weight: 500;
+}
+
+.auth-notice {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.code-input {
+  font-size: 1.4rem;
+  letter-spacing: 0.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .auth-actions,
 .review-form-actions {
   display: flex;
@@ -1512,6 +1549,53 @@ button.user-chip:hover {
   .review-form-row {
     grid-template-columns: 1fr;
   }
+}
+
+.company-picker {
+  position: relative;
+}
+
+.company-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 16rem;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.company-suggestions button {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.company-suggestions button:hover,
+.company-suggestions button:focus-visible {
+  background: var(--primary-light);
+}
+
+.company-suggestions .company-suggestion-add {
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .review-form textarea {

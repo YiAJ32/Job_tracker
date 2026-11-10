@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import CvPreviewModal from "./CvPreviewModal";
-import { hasAllowedCvExtension } from "./cvValidation";
+import { cvFileError } from "./cvValidation";
 import { useI18n } from "./i18n";
 
 function CvDropzoneField({ file, onFileChange }) {
@@ -12,8 +12,9 @@ function CvDropzoneField({ file, onFileChange }) {
 
   function pickFile(candidate) {
     if (!candidate) return;
-    if (!hasAllowedCvExtension(candidate.name)) {
-      setError(t("cv.onlyPdfWord"));
+    const problem = cvFileError(candidate);
+    if (problem) {
+      setError(t(problem));
       return;
     }
     setError(null);
