@@ -30,6 +30,8 @@ class User(Base):
     foto_filename = Column(String, nullable=True)
     foto_content_type = Column(String, nullable=True)
     foto_updated_at = Column(DateTime(timezone=True), nullable=True)
+    # Último idioma usado en la app, para los correos que se mandan sin una petición del usuario
+    idioma = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

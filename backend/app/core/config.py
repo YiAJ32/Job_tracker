@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     verification_code_minutes: int = 15
     # Las cuentas que no confirman el email en este plazo se borran
     unverified_account_days: int = 7
+    # Días en "Sin respuesta" antes de mandar el recordatorio por correo, y cada cuánto se revisa
+    no_response_reminder_days: int = 14
+    reminder_check_minutes: int = 60
 
     class Config:
         env_file = ".env"

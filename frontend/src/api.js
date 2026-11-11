@@ -47,7 +47,15 @@ export function onUnauthorized(handler) {
 // Hace el fetch y convierte las respuestas con error en un Error con el mensaje del backend
 async function send(path, options = {}) {
   const sentToken = Boolean(getToken());
-  const res = await fetch(`${API_URL}${path}`, options);
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, options);
+  } catch {
+    // fetch solo falla así cuando no hay conexión con el backend ("Failed to fetch")
+    const error = new Error(t("common.networkError"));
+    error.status = 0;
+    throw error;
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     // Solo un 401 con token es una sesión vencida; sin token es, por ejemplo, un login fallido

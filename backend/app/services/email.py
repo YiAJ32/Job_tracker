@@ -1,5 +1,6 @@
 import logging
 import smtplib
+from datetime import date
 from email.message import EmailMessage
 
 from app.core.config import settings
@@ -72,20 +73,85 @@ CODE_EMAILS = {
 }
 
 
+# Recordatorio de una solicitud que lleva demasiados días en "Sin respuesta"
+NO_RESPONSE_EMAILS = {
+    "es": {
+        "subject": "Tu solicitud en {empresa} lleva {days} días sin respuesta",
+        "body": (
+            "Hola {nombre},\n\n"
+            "Tu solicitud para el puesto de {puesto} en {empresa} está marcada como "
+            "\"Sin respuesta\" desde el {desde} (hace {days} días).\n\n"
+            "Quizás convenga escribirle a la empresa para hacer un seguimiento, "
+            "o actualizar el estado si ya tuviste novedades."
+        ),
+    },
+    "en": {
+        "subject": "Your application at {empresa} has had no response for {days} days",
+        "body": (
+            "Hi {nombre},\n\n"
+            "Your application for the {puesto} position at {empresa} has been marked as "
+            "\"No response\" since {desde} ({days} days ago).\n\n"
+            "It may be worth following up with the company, "
+            "or updating the status if you already heard back."
+        ),
+    },
+    "pt": {
+        "subject": "Sua candidatura na {empresa} está há {days} dias sem resposta",
+        "body": (
+            "Olá {nombre},\n\n"
+            "Sua candidatura para a vaga de {puesto} na {empresa} está marcada como "
+            "\"Sem resposta\" desde {desde} (há {days} dias).\n\n"
+            "Talvez valha a pena escrever para a empresa para fazer um acompanhamento, "
+            "ou atualizar o status se você já teve novidades."
+        ),
+    },
+}
+
+
+def email_configured() -> bool:
+    # Sin usuario o contraseña Gmail rechaza el envío, así que se sigue usando la consola
+    return bool(settings.smtp_host and settings.smtp_user and settings.smtp_password)
+
+
 def send_code_email(to: str, nombre: str, code: str, language: str, kind: str) -> None:
     texts = CODE_EMAILS[kind].get(language, CODE_EMAILS[kind]["es"])
     values = {"nombre": nombre, "code": code, "minutes": settings.verification_code_minutes}
 
     # Sin servidor de correo configurado (desarrollo) el código queda en la consola
-    if not settings.smtp_host:
+    if not email_configured():
         logger.warning("SMTP no configurado. Código de %s para %s: %s", kind, to, code)
         return
 
+    _send(to, texts["subject"].format(**values), texts["body"].format(**values))
+
+
+def send_no_response_email(
+    to: str, nombre: str, empresa: str, puesto: str, desde: date, days: int, language: str
+) -> None:
+    texts = NO_RESPONSE_EMAILS.get(language, NO_RESPONSE_EMAILS["es"])
+    values = {
+        "nombre": nombre,
+        "empresa": empresa,
+        "puesto": puesto,
+        "desde": desde.strftime("%d/%m/%Y"),
+        "days": days,
+    }
+    subject = texts["subject"].format(**values)
+    body = texts["body"].format(**values)
+
+    if not email_configured():
+        logger.warning("SMTP no configurado. Recordatorio para %s:\n%s\n\n%s", to, subject, body)
+        return
+
+    _send(to, subject, body)
+
+
+def _send(to: str, subject: str, body: str) -> None:
     message = EmailMessage()
-    message["Subject"] = texts["subject"].format(**values)
+    message["Subject"] = subject
     message["From"] = settings.smtp_from or settings.smtp_user
     message["To"] = to
-    message.set_content(texts["body"].format(**values))
+    message.set_content(body)
 
     # El puerto 465 usa SSL directo; el resto (587) arranca en texto plano y pasa a TLS
     if settings.smtp_port == 465:
