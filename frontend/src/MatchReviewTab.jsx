@@ -19,6 +19,12 @@ function MatchReviewTab() {
 
   // Cuando se sube un CV en PDF o Word, extrae su texto automáticamente
   // para usarlo en la evaluación del match.
+  // El resultado corresponde a un CV puntual: al cambiarlo se descarta para no mostrar uno viejo
+  useEffect(() => {
+    setResult(null);
+    setEvaluateError(null);
+  }, [cvFile, cvText, inputMode]);
+
   useEffect(() => {
     if (!cvFile) {
       setExtractedCvText("");

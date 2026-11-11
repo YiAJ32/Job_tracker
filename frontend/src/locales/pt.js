@@ -28,6 +28,7 @@ const pt = {
 
   "common.cancel": "Cancelar",
   "common.close": "Fechar",
+  "common.networkError": "Não foi possível conectar ao servidor. Verifique se o backend está ligado e tente de novo.",
   "common.saveChanges": "Salvar alterações",
   "common.saving": "Salvando...",
   "common.total": "{count} no total",

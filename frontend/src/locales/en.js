@@ -27,6 +27,7 @@ const en = {
 
   "common.cancel": "Cancel",
   "common.close": "Close",
+  "common.networkError": "Couldn't connect to the server. Check that the backend is running and try again.",
   "common.saveChanges": "Save changes",
   "common.saving": "Saving...",
   "common.total": "{count} total",
