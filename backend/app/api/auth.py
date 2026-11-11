@@ -225,13 +225,18 @@ def reset_password(payload: PasswordReset, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(payload: UserLogin, db: Session = Depends(get_db)):
+def login(
+    payload: UserLogin,
+    db: Session = Depends(get_db),
+    accept_language: str | None = Header(None),
+):
     user = _find_user(db, payload.email)
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Email o contraseña incorrectos")
     if not user.email_verificado:
         raise HTTPException(status_code=403, detail="Tenés que confirmar tu email antes de entrar")
     response = _start_session(user)
+    user.idioma = preferred_language(accept_language)
     db.commit()
     return response
 

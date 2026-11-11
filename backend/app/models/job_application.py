@@ -25,6 +25,9 @@ class JobApplication(Base):
     cv_stored_filename = Column(String, nullable=True)
     cv_content_type = Column(String, nullable=True)
     cv_uploaded_at = Column(DateTime(timezone=True), nullable=True)
+    # Desde cuándo la solicitud tiene el estado actual (para el recordatorio de "Sin respuesta")
+    estado_actualizado_en = Column(DateTime(timezone=True), server_default=func.now())
+    recordatorio_enviado_en = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

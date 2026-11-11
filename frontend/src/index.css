@@ -712,6 +712,11 @@ tbody tr:hover {
   color: #6c6c85;
 }
 
+[data-status="sin-respuesta"] {
+  background-color: #fdeee4;
+  color: #b25a1c;
+}
+
 /* Empty / loading states */
 
 .state-block {
@@ -1026,6 +1031,11 @@ tbody tr:hover {
 :root[data-theme="dark"] [data-status="retirado"] {
   background-color: #2b2b38;
   color: #9a9ab0;
+}
+
+:root[data-theme="dark"] [data-status="sin-respuesta"] {
+  background-color: #3a2416;
+  color: #f0a372;
 }
 
 /* Theme toggle */

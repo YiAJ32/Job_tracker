@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -15,6 +17,8 @@ from app.core.config import settings
 from app.core.i18n import preferred_language, translate_message
 from app.db.session import SessionLocal
 from app.services.accounts import purge_unverified_users
+from app.services.email import email_configured
+from app.services.reminders import reminder_loop
 
 
 @asynccontextmanager
@@ -22,7 +26,15 @@ async def lifespan(app: FastAPI):
     # Limpia las cuentas sin confirmar al arrancar; el registro también lo hace cada vez
     with SessionLocal() as db:
         purge_unverified_users(db)
+    if not email_configured():
+        logging.getLogger("uvicorn.error").warning(
+            "Correo sin configurar (SMTP_USER/SMTP_PASSWORD en .env): "
+            "los códigos y recordatorios se muestran en la consola"
+        )
+    # Revisa cada cierto tiempo las solicitudes que llevan mucho en "Sin respuesta"
+    reminders_task = asyncio.create_task(reminder_loop())
     yield
+    reminders_task.cancel()
 
 
 app = FastAPI(title="Job Tracker API", lifespan=lifespan)

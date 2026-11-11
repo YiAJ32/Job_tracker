@@ -41,6 +41,7 @@ const es = {
   "status.oferta": "Oferta",
   "status.rechazado": "Rechazado",
   "status.retirado": "Retirado",
+  "status.sin-respuesta": "Sin respuesta",
 
   "applications.newTitle": "Nueva solicitud",
   "applications.company": "Empresa",

@@ -41,6 +41,7 @@ const pt = {
   "status.oferta": "Oferta",
   "status.rechazado": "Recusado",
   "status.retirado": "Desistência",
+  "status.sin-respuesta": "Sem resposta",
 
   "applications.newTitle": "Nova candidatura",
   "applications.company": "Empresa",

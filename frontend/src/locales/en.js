@@ -40,6 +40,7 @@ const en = {
   "status.oferta": "Offer",
   "status.rechazado": "Rejected",
   "status.retirado": "Withdrawn",
+  "status.sin-respuesta": "No response",
 
   "applications.newTitle": "New application",
   "applications.company": "Company",

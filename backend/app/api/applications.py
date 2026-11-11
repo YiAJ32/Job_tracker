@@ -3,12 +3,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.i18n import preferred_language
 from app.core.security import get_current_user
 from app.core.validation import clean_url, require_text
 from app.db.session import get_db
@@ -103,6 +104,7 @@ def create_application(
     payload: ApplicationCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    accept_language: str | None = Header(None),
 ):
     _get_status_or_404(db, payload.estado_id)
     company = _get_or_create_company(db, payload.empresa)
@@ -117,6 +119,8 @@ def create_application(
         fecha_aplicacion=payload.fecha_aplicacion,
         notas=payload.notas,
     )
+    # El idioma se guarda para escribirle los recordatorios en el idioma que usa
+    user.idioma = preferred_language(accept_language)
     db.add(application)
     db.commit()
     db.refresh(application)
@@ -139,6 +143,7 @@ def update_application(
     payload: ApplicationUpdate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    accept_language: str | None = Header(None),
 ):
     application = _get_application_or_404(db, application_id, user)
     data = payload.model_dump(exclude_unset=True)
@@ -148,6 +153,10 @@ def update_application(
         application.company_id = company.id
     if "estado_id" in data:
         _get_status_or_404(db, data["estado_id"])
+        # Al cambiar de estado se reinicia el conteo de días y el recordatorio puede volver a mandarse
+        if data["estado_id"] != application.estado_id:
+            application.estado_actualizado_en = datetime.now(timezone.utc)
+            application.recordatorio_enviado_en = None
     if "puesto" in data:
         data["puesto"] = require_text(data["puesto"], EMPTY_POSITION)
     if "enlace_oferta" in data:
@@ -156,6 +165,7 @@ def update_application(
     for field, value in data.items():
         setattr(application, field, value)
 
+    user.idioma = preferred_language(accept_language)
     db.commit()
     db.refresh(application)
     return _to_read(application)
